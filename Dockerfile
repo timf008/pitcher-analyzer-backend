@@ -1,5 +1,8 @@
 FROM ubuntu:22.04
 
+# Prevent tzdata and other packages from prompting for input
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y software-properties-common curl gnupg && \
@@ -29,4 +32,5 @@ EXPOSE 3000
 
 # Start the server
 CMD ["npm", "start"]
+
 
