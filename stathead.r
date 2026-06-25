@@ -12,7 +12,8 @@ season <- args[2]
 # -------------------------------
 # Load correct CSV for season
 # -------------------------------
-file_path <- file.path("csv", sprintf("stathead_pitching_%s.csv", season))
+file_path <- sprintf("stathead_pitching_%s.csv", season)
+
 
 
 if (!file.exists(file_path)) {
