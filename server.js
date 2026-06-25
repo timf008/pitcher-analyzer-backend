@@ -4,6 +4,9 @@ const { exec } = require("child_process");
 const csv = require("csv-parser");
 const app = express();
 const fs = require("fs");
+const cors = require("cors");
+app.use(cors());
+
 
 
 // ---------------------------
