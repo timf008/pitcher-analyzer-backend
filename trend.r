@@ -1,0 +1,88 @@
+library(readr)
+library(jsonlite)
+library(stringr)
+
+args <- commandArgs(trailingOnly = TRUE)
+name <- args[1]
+stat <- args[2]
+season <- as.numeric(args[3])
+
+# Load CSV
+file_path <- file.path("csv", sprintf("stathead_pitching_%s.csv", season))
+df <- read_csv(file_path, show_col_types = FALSE)
+
+# Normalize names
+clean <- function(x) {
+    x <- trimws(x)
+    x <- gsub("[,*#†+]", "", x)
+    x <- gsub("\\.", "", x)
+    x <- gsub("\\s+", " ", x)
+    toupper(x)
+}
+
+name_col <- names(df)[str_detect(names(df), regex("^Player$", ignore_case = TRUE))][1]
+df$NameClean <- clean(df[[name_col]])
+nameClean <- clean(name)
+
+# Ensure Season numeric
+df$Season <- suppressWarnings(as.numeric(df$Season))
+
+# Detect SO and BB columns
+so_col <- names(df)[str_detect(names(df), "^SO")][1]
+bb_col <- names(df)[str_detect(names(df), "^BB$")][1]
+
+# Match row
+row <- df[df$NameClean == nameClean & df$Season == season, ]
+
+if (nrow(row) == 0) {
+    cat(toJSON(list(value = NULL), auto_unbox = TRUE))
+    quit()
+}
+
+# Compute derived stats
+if (stat == "Kpct") {
+
+    if ("BF" %in% names(row) && !is.na(row$BF)) {
+        value <- (row[[so_col]] / row$BF) * 100
+    } else {
+        value <- NA
+    }
+
+} else if (stat == "BBpct") {
+
+    if ("BF" %in% names(row) && !is.na(row$BF)) {
+        value <- (row[[bb_col]] / row$BF) * 100
+    } else {
+        value <- NA
+    }
+
+} else if (stat == "KBB") {
+
+    value <- row[[so_col]] / row[[bb_col]]
+
+} else {
+
+    # Normal stat from CSV
+    value <- row[[stat]]
+}
+
+# ⭐ UNIVERSAL FIX — FINAL VERSION ⭐
+
+# Normalize value into a simple R vector
+value <- unlist(value)
+
+# If empty, NULL, or length 0 → NA
+if (is.null(value) || length(value) == 0) {
+    value <- NA
+}
+
+# Convert to numeric
+value <- suppressWarnings(as.numeric(value))
+
+# If still NA or numeric(0) → NA
+if (is.null(value) || length(value) == 0 || is.na(value)) {
+    value <- NA
+}
+
+
+cat(toJSON(list(value = value), auto_unbox = TRUE))
