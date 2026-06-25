@@ -1,8 +1,10 @@
 services:
   - type: web
-    name: pitcher-api
+    name: pitcher-analyzer-backend
     env: node
     buildCommand: |
-      apt-get update && apt-get install -y r-base
+      apt-get update
+      apt-get install -y r-base r-base-dev
+      apt-get install -y r-cran-readr r-cran-dplyr r-cran-jsonlite r-cran-stringr
       npm install
     startCommand: npm start
