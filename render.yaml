@@ -8,3 +8,4 @@ services:
       apt-get install -y r-cran-readr r-cran-dplyr r-cran-jsonlite r-cran-stringr
       npm install
     startCommand: npm start
+   
