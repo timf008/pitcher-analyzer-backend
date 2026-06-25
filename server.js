@@ -5,9 +5,11 @@ const csv = require("csv-parser");
 const app = express();
 const fs = require("fs");
 const cors = require("cors");
+
+// ---------------------------
+// CORS (required for GitHub Pages frontend)
+// ---------------------------
 app.use(cors());
-
-
 
 // ---------------------------
 // Static File Serving
@@ -59,15 +61,10 @@ app.get("/api/pitcherList", (req, res) => {
     fs.createReadStream(filePath)
         .pipe(csv())
         .on("data", (row) => {
-
-            // Extract fields safely
             const name = row.Player;
             const id = row["Player-additional"] || null;
-
-            // Convert GS to number
             const gs = Number(row.GS || row.gs || 0);
 
-            // ⭐ FILTER: Only include pitchers with at least 10 starts
             if (name && gs >= 10) {
                 rows.push({ name, id });
             }
@@ -76,7 +73,6 @@ app.get("/api/pitcherList", (req, res) => {
             res.json(rows);
         });
 });
-
 
 // ---------------------------
 // Backend for Emoji Trend Button - Graph
@@ -105,7 +101,6 @@ app.get("/api/pitcherTrend", (req, res) => {
                     const json = JSON.parse(stdout);
                     let value = json.value;
 
-                    // ⭐ THE FIX — convert {} → null
                     if (value && typeof value === "object" && Object.keys(value).length === 0) {
                         value = null;
                     }
@@ -152,9 +147,6 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
         });
     });
 });
-
-
-
 
 // ---------------------------
 // Start Server
