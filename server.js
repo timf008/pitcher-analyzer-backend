@@ -20,6 +20,11 @@ app.use(express.static(path.join(__dirname, "public")));
 // API: Run R script for pitcher data
 // ---------------------------
 app.get("/api/pitchers", (req, res) => {
+    // Force CORS headers even on errors
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.header("Access-Control-Allow-Methods", "GET");
+
     const { name, season } = req.query;
 
     if (!name || !season) {
@@ -48,6 +53,7 @@ app.get("/api/pitchers", (req, res) => {
         }
     });
 });
+
 
 // --------------------------------------
 // API: Return list of pitchers for season
