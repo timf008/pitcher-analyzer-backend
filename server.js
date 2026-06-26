@@ -89,7 +89,7 @@ app.get("/api/pitcherTrend", async (req, res) => {
     res.setHeader("Access-Control-Allow-Methods", "GET");
 
     const { name, stat } = req.query;
-    const seasons = [2025, 2024, 2023, 2022, 2021, 2020];
+    const seasons = [2025, 2024, 2023];
 
     const results = [];
 
