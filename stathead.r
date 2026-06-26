@@ -9,37 +9,45 @@ args <- commandArgs(trailingOnly = TRUE)
 player_name <- args[1]
 season <- args[2]
 
-# -------------------------------
-# Name Normalization Helpers
-# -------------------------------
+# ============================================================
+# Name Normalization (THE FIX)
+# Converts ALL formats → "LAST FIRST"
+# ============================================================
+normalize_name <- function(x) {
+    # Remove accents
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
 
-# Convert "First Last" → "Last, First"
-to_last_first <- function(x) {
-    x <- trimws(x)
-    parts <- unlist(strsplit(x, " "))
-    if (length(parts) == 2) {
-        return(paste(parts[2], parts[1], sep = ", "))
-    }
-    return(x)
-}
-
-# Clean punctuation, accents, spacing
-clean <- function(x) {
-    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")  # remove accents
+    # Remove punctuation
     x <- gsub("[,*#†+]", "", x)
     x <- gsub("\\.", "", x)
     x <- gsub("\\s+", " ", x)
-    trimws(x)
+    x <- trimws(x)
+
+    # If already "Last, First"
+    if (grepl(",", x)) {
+        parts <- unlist(strsplit(x, ","))
+        last  <- trimws(parts[1])
+        first <- trimws(parts[2])
+        return(toupper(paste(last, first)))
+    }
+
+    # If "First Last"
+    parts <- unlist(strsplit(x, " "))
+    if (length(parts) == 2) {
+        first <- parts[1]
+        last  <- parts[2]
+        return(toupper(paste(last, first)))
+    }
+
+    # Fallback
+    return(toupper(x))
 }
 
-# Apply full normalization
-player_name_clean <- clean(player_name)
-player_name_clean <- to_last_first(player_name_clean)
-player_name_clean <- toupper(player_name_clean)
+player_name_clean <- normalize_name(player_name)
 
-# -------------------------------
+# ============================================================
 # Load CSV
-# -------------------------------
+# ============================================================
 file_path <- sprintf("stathead_pitching_%s.csv", season)
 
 if (!file.exists(file_path)) {
@@ -49,18 +57,18 @@ if (!file.exists(file_path)) {
 
 df <- read_csv(file_path, show_col_types = FALSE)
 
-# -------------------------------
+# ============================================================
 # Normalize column names
-# -------------------------------
+# ============================================================
 names(df) <- names(df) |>
   str_replace_all("%", "pct") |>
   str_replace_all("/", "_") |>
   str_replace_all("\\.", "") |>
   str_replace_all(" ", "_")
 
-# -------------------------------
-# Detect player name column
-# -------------------------------
+# ============================================================
+# Detect Player column
+# ============================================================
 name_col <- names(df)[str_detect(names(df), regex("^Player$", ignore_case = TRUE))][1]
 
 if (is.na(name_col)) {
@@ -68,31 +76,28 @@ if (is.na(name_col)) {
     quit(status = 0)
 }
 
-# -------------------------------
-# Normalize names in CSV
-# -------------------------------
-df$NameClean <- df[[name_col]] |>
-    clean() |>
-    to_last_first() |>
-    toupper()
+# ============================================================
+# Normalize CSV names
+# ============================================================
+df$NameClean <- sapply(df[[name_col]], normalize_name)
 
-# -------------------------------
-# Clean season column
-# -------------------------------
+# ============================================================
+# Clean Season column
+# ============================================================
 df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
 
-# -------------------------------
+# ============================================================
 # Detect SO and BB columns
-# -------------------------------
+# ============================================================
 so_cols <- names(df)[str_detect(names(df), "^SO")]
 bb_cols <- names(df)[str_detect(names(df), "^BB$")]
 
 so_col <- so_cols[1]
 bb_col <- bb_cols[1]
 
-# -------------------------------
+# ============================================================
 # Filter for player + season
-# -------------------------------
+# ============================================================
 p <- df %>%
   filter(
     NameClean == player_name_clean,
@@ -104,9 +109,9 @@ if (nrow(p) == 0) {
     quit(status = 0)
 }
 
-# -------------------------------
+# ============================================================
 # Bulletproof K% and BB%
-# -------------------------------
+# ============================================================
 if ("BF" %in% names(p) && !is.na(p$BF)) {
 
     p$Kpct <- (p[[so_col]] / p$BF) * 100
@@ -129,16 +134,16 @@ if ("BF" %in% names(p) && !is.na(p$BF)) {
     p$BBpct <- NA
 }
 
-# -------------------------------
+# ============================================================
 # Compute K/BB if missing
-# -------------------------------
+# ============================================================
 if (!"SO_BB" %in% names(p)) {
     p$SO_BB <- p[[so_col]] / p[[bb_col]]
 }
 
-# -------------------------------
+# ============================================================
 # Build JSON output
-# -------------------------------
+# ============================================================
 result <- p %>%
   transmute(
     ERA  = as.numeric(ERA),
@@ -155,4 +160,5 @@ result <- p %>%
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
+
 
