@@ -13,7 +13,6 @@ season <- args[2]
 # Name Normalization Helpers
 # -------------------------------
 
-# Convert "LAST, FIRST" → "FIRST LAST"
 fix_last_first <- function(x) {
     if (grepl(",", x)) {
         parts <- unlist(strsplit(x, ","))
@@ -24,7 +23,6 @@ fix_last_first <- function(x) {
     return(x)
 }
 
-# Clean and normalize names
 clean <- function(x) {
     x <- fix_last_first(x)
     x <- trimws(x)
@@ -73,22 +71,21 @@ if (is.na(name_col)) {
 df$NameClean <- clean(df[[name_col]])
 
 # -------------------------------
-# Season must be numeric (clean weird Stathead formats)
+# Season must be numeric (clean any junk)
 # -------------------------------
 df$Season <- df$Season |>
     as.character() |>
-    gsub("[^0-9]", "", _) |>
+    gsub("[^0-9]", "", .) |>
     as.numeric()
 
 # -------------------------------
-# FIX: Duplicate SO column issue
+# Detect SO and BB columns
 # -------------------------------
-# Your CSV has SO twice — the LAST one is the real strikeout column
-so_cols <- names(df)[names(df) == "SO"]
-so_col <- so_cols[length(so_cols)]  # pick last SO
+so_cols <- names(df)[str_detect(names(df), "^SO")]
+bb_cols <- names(df)[str_detect(names(df), "^BB$")]
 
-# BB column is correct
-bb_col <- "BB"
+so_col <- so_cols[1]
+bb_col <- bb_cols[1]
 
 # -------------------------------
 # Filter for player + season
@@ -151,7 +148,8 @@ result <- p %>%
     FIP = as.numeric(FIP),
     W = as.numeric(W),
     L = as.numeric(L),
-    GS = as.numeric(GS)   # REQUIRED FOR RANK
+    GS = as.numeric(GS)
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
+
