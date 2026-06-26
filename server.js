@@ -78,6 +78,10 @@ app.get("/api/pitcherList", (req, res) => {
 // Backend for Emoji Trend Button - Graph
 // ---------------------------
 app.get("/api/pitcherTrend", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET");
+
     const { name, stat } = req.query;
 
     const seasons = [2025, 2024, 2023, 2022, 2021, 2020];
@@ -121,6 +125,7 @@ app.get("/api/pitcherTrend", (req, res) => {
         });
     });
 });
+
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
