@@ -55,9 +55,9 @@ app.get("/api/pitchers", (req, res) => {
 });
 
 
-// --------------------------------------
-// API: Return list of pitchers for season
-// --------------------------------------
+// -------------------------------------------
+// API: Return list of pitchers WITH GS + ERA
+// -------------------------------------------
 app.get("/api/pitcherList", (req, res) => {
     const { season } = req.query;
 
@@ -69,16 +69,22 @@ app.get("/api/pitcherList", (req, res) => {
         .on("data", (row) => {
             const name = row.Player;
             const id = row["Player-additional"] || null;
-            const gs = Number(row.GS || row.gs || 0);
 
-            if (name && gs >= 10) {
-                rows.push({ name, id });
-            }
+            const gs  = Number(row.GS);
+            const era = Number(row.ERA);
+
+            rows.push({
+                name,
+                id,
+                GS: Number.isNaN(gs) ? null : gs,
+                ERA: Number.isNaN(era) ? null : era
+            });
         })
         .on("end", () => {
             res.json(rows);
         });
 });
+
 
 // ---------------------------
 // Backend for Emoji Trend Button - Graph
