@@ -35,7 +35,8 @@ clean <- function(x) {
 # -------------------------------
 # Load CSV
 # -------------------------------
-file_path <- file.path("csv", sprintf("stathead_pitching_%s.csv", season))
+file_path <- sprintf("stathead_pitching_%s.csv", season)
+
 df <- read_csv(file_path, show_col_types = FALSE)
 
 # Normalize names
