@@ -87,6 +87,16 @@ so_col <- so_cols[1]
 bb_col <- bb_cols[1]
 
 # -------------------------------
+# Normalize names in CSV
+# -------------------------------
+df$NameClean <- clean(df[[name_col]])
+
+# -------------------------------
+# Normalize input name
+# -------------------------------
+player_name_clean <- clean(player_name)
+
+# -------------------------------
 # Filter for player + season
 # -------------------------------
 p <- df %>%
@@ -99,6 +109,7 @@ if (nrow(p) == 0) {
     cat(toJSON(list(error = "Player not found"), auto_unbox = TRUE))
     quit(status = 0)
 }
+
 
 # -------------------------------
 # Bulletproof K% and BB% logic
