@@ -73,9 +73,12 @@ if (is.na(name_col)) {
 df$NameClean <- clean(df[[name_col]])
 
 # -------------------------------
-# Season must be numeric
+# Season must be numeric (clean weird Stathead formats)
 # -------------------------------
-df$Season <- suppressWarnings(as.numeric(df$Season))
+df$Season <- df$Season |>
+    as.character() |>
+    gsub("[^0-9]", "", _) |>
+    as.numeric()
 
 # -------------------------------
 # FIX: Duplicate SO column issue
