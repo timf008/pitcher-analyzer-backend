@@ -77,54 +77,50 @@ app.get("/api/pitcherList", (req, res) => {
 // ---------------------------
 // Backend for Emoji Trend Button - Graph
 // ---------------------------
-app.get("/api/pitcherTrend", (req, res) => {
+app.get("/api/pitcherTrend", async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Allow-Methods", "GET");
 
     const { name, stat } = req.query;
-
     const seasons = [2025, 2024, 2023, 2022, 2021, 2020];
 
     const results = [];
-    let completed = 0;
 
-    seasons.forEach(season => {
+    for (const season of seasons) {
         const cmd = `Rscript "${path.join(__dirname, "trend.r")}" "${name}" "${stat}" ${season}`;
 
-        exec(cmd, (error, stdout, stderr) => {
-            completed++;
+        try {
+            const output = await new Promise((resolve, reject) => {
+                exec(cmd, (error, stdout, stderr) => {
+                    if (error) return resolve(null);
+                    resolve(stdout);
+                });
+            });
 
-            console.log(`RAW TREND OUTPUT for ${season}:`, stdout);
-
-            if (error) {
-                console.error("R error:", stderr);
+            if (!output) {
                 results.push({ season, value: null });
-            } else {
-                try {
-                    const json = JSON.parse(stdout);
-                    let value = json.value;
-
-                    if (value && typeof value === "object" && Object.keys(value).length === 0) {
-                        value = null;
-                    }
-
-                    results.push({ season, value });
-
-                } catch (e) {
-                    console.error("Trend parse error:", e);
-                    results.push({ season, value: null });
-                }
+                continue;
             }
 
-            if (completed === seasons.length) {
-                results.sort((a, b) => a.season - b.season);
-                console.log("TREND FINAL RESULTS:", results);
-                res.json(results);
+            const json = JSON.parse(output);
+            let value = json.value;
+
+            if (value && typeof value === "object" && Object.keys(value).length === 0) {
+                value = null;
             }
-        });
-    });
+
+            results.push({ season, value });
+
+        } catch (e) {
+            results.push({ season, value: null });
+        }
+    }
+
+    results.sort((a, b) => a.season - b.season);
+    res.json(results);
 });
+
 
 
 // --------------------------------------
