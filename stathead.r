@@ -78,23 +78,14 @@ df$NameClean <- clean(df[[name_col]])
 df$Season <- suppressWarnings(as.numeric(df$Season))
 
 # -------------------------------
-# Detect SO and BB columns
+# FIX: Duplicate SO column issue
 # -------------------------------
-so_cols <- names(df)[str_detect(names(df), "^SO")]
-bb_cols <- names(df)[str_detect(names(df), "^BB$")]
+# Your CSV has SO twice — the LAST one is the real strikeout column
+so_cols <- names(df)[names(df) == "SO"]
+so_col <- so_cols[length(so_cols)]  # pick last SO
 
-so_col <- so_cols[1]
-bb_col <- bb_cols[1]
-
-# -------------------------------
-# Normalize names in CSV
-# -------------------------------
-df$NameClean <- clean(df[[name_col]])
-
-# -------------------------------
-# Normalize input name
-# -------------------------------
-player_name_clean <- clean(player_name)
+# BB column is correct
+bb_col <- "BB"
 
 # -------------------------------
 # Filter for player + season
@@ -109,7 +100,6 @@ if (nrow(p) == 0) {
     cat(toJSON(list(error = "Player not found"), auto_unbox = TRUE))
     quit(status = 0)
 }
-
 
 # -------------------------------
 # Bulletproof K% and BB% logic
@@ -132,8 +122,8 @@ if ("BF" %in% names(p) && !is.na(p$BF)) {
     p$BBpct <- (p$BB9 / 27) * 100
 
 } else {
-    p$Kpct <- 0
-    p$BBpct <- 0
+    p$Kpct <- NA
+    p$BBpct <- NA
 }
 
 # -------------------------------
@@ -157,8 +147,8 @@ result <- p %>%
     HR9 = as.numeric(HR9),
     FIP = as.numeric(FIP),
     W = as.numeric(W),
-    L = as.numeric(L)
+    L = as.numeric(L),
+    GS = as.numeric(GS)   # REQUIRED FOR RANK
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
-
