@@ -73,10 +73,7 @@ df$NameClean <- clean(df[[name_col]])
 # -------------------------------
 # Season must be numeric (clean any junk)
 # -------------------------------
-df$Season <- df$Season |>
-    as.character() |>
-    gsub("[^0-9]", "", .) |>
-    as.numeric()
+df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
 
 # -------------------------------
 # Detect SO and BB columns
@@ -152,4 +149,3 @@ result <- p %>%
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
-
