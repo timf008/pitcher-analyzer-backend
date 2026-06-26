@@ -13,29 +13,32 @@ season <- args[2]
 # Name Normalization Helpers
 # -------------------------------
 
-fix_last_first <- function(x) {
-    if (grepl(",", x)) {
-        parts <- unlist(strsplit(x, ","))
-        first <- trimws(parts[2])
-        last  <- trimws(parts[1])
-        return(paste(first, last))
+# Convert "First Last" → "Last, First"
+to_last_first <- function(x) {
+    x <- trimws(x)
+    parts <- unlist(strsplit(x, " "))
+    if (length(parts) == 2) {
+        return(paste(parts[2], parts[1], sep = ", "))
     }
     return(x)
 }
 
+# Clean punctuation, accents, spacing
 clean <- function(x) {
-    x <- fix_last_first(x)
-    x <- trimws(x)
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")  # remove accents
     x <- gsub("[,*#†+]", "", x)
     x <- gsub("\\.", "", x)
     x <- gsub("\\s+", " ", x)
-    toupper(x)
+    trimws(x)
 }
 
+# Apply full normalization
 player_name_clean <- clean(player_name)
+player_name_clean <- to_last_first(player_name_clean)
+player_name_clean <- toupper(player_name_clean)
 
 # -------------------------------
-# Load correct CSV for season
+# Load CSV
 # -------------------------------
 file_path <- sprintf("stathead_pitching_%s.csv", season)
 
@@ -68,10 +71,13 @@ if (is.na(name_col)) {
 # -------------------------------
 # Normalize names in CSV
 # -------------------------------
-df$NameClean <- clean(df[[name_col]])
+df$NameClean <- df[[name_col]] |>
+    clean() |>
+    to_last_first() |>
+    toupper()
 
 # -------------------------------
-# Season must be numeric (clean any junk)
+# Clean season column
 # -------------------------------
 df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
 
@@ -99,7 +105,7 @@ if (nrow(p) == 0) {
 }
 
 # -------------------------------
-# Bulletproof K% and BB% logic
+# Bulletproof K% and BB%
 # -------------------------------
 if ("BF" %in% names(p) && !is.na(p$BF)) {
 
@@ -149,3 +155,4 @@ result <- p %>%
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
+
