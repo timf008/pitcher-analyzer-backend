@@ -10,11 +10,36 @@ player_name <- args[1]
 season <- args[2]
 
 # -------------------------------
+# Name Normalization Helpers
+# -------------------------------
+
+# Convert "LAST, FIRST" → "FIRST LAST"
+fix_last_first <- function(x) {
+    if (grepl(",", x)) {
+        parts <- unlist(strsplit(x, ","))
+        first <- trimws(parts[2])
+        last  <- trimws(parts[1])
+        return(paste(first, last))
+    }
+    return(x)
+}
+
+# Clean and normalize names
+clean <- function(x) {
+    x <- fix_last_first(x)
+    x <- trimws(x)
+    x <- gsub("[,*#†+]", "", x)
+    x <- gsub("\\.", "", x)
+    x <- gsub("\\s+", " ", x)
+    toupper(x)
+}
+
+player_name_clean <- clean(player_name)
+
+# -------------------------------
 # Load correct CSV for season
 # -------------------------------
 file_path <- sprintf("stathead_pitching_%s.csv", season)
-
-
 
 if (!file.exists(file_path)) {
     cat(toJSON(list(error = paste("CSV not found:", file_path)), auto_unbox = TRUE))
@@ -22,7 +47,6 @@ if (!file.exists(file_path)) {
 }
 
 df <- read_csv(file_path, show_col_types = FALSE)
-
 
 # -------------------------------
 # Normalize column names
@@ -44,7 +68,12 @@ if (is.na(name_col)) {
 }
 
 # -------------------------------
-# CRITICAL FIX: Season must be numeric
+# Normalize names in CSV
+# -------------------------------
+df$NameClean <- clean(df[[name_col]])
+
+# -------------------------------
+# Season must be numeric
 # -------------------------------
 df$Season <- suppressWarnings(as.numeric(df$Season))
 
@@ -62,10 +91,9 @@ bb_col <- bb_cols[1]
 # -------------------------------
 p <- df %>%
   filter(
-    str_detect(str_to_lower(.data[[name_col]]), str_to_lower(player_name)),
+    NameClean == player_name_clean,
     Season == as.numeric(season)
   )
-
 
 if (nrow(p) == 0) {
     cat(toJSON(list(error = "Player not found"), auto_unbox = TRUE))
@@ -75,8 +103,8 @@ if (nrow(p) == 0) {
 # -------------------------------
 # Bulletproof K% and BB% logic
 # -------------------------------
-
 if ("BF" %in% names(p) && !is.na(p$BF)) {
+
     p$Kpct <- (p[[so_col]] / p$BF) * 100
     p$BBpct <- (p[[bb_col]] / p$BF) * 100
 
@@ -121,5 +149,5 @@ result <- p %>%
     L = as.numeric(L)
   )
 
-
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
+
