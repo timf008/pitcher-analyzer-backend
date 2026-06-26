@@ -117,7 +117,6 @@ app.get("/api/pitcherTrend", async (req, res) => {
         }
     }
 
-    results.sort((a, b) => a.season - b.season);
     res.json(results);
 });
 
