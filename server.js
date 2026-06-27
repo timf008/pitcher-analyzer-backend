@@ -4,10 +4,9 @@ const { exec } = require("child_process");
 const csv = require("csv-parser");
 const app = express();
 const fs = require("fs");
-const cors = require("cors");
 
 // ---------------------------
-// GLOBAL CORS (applies to ALL routes, ALL errors)
+// GLOBAL CORS (safe for all routes)
 // ---------------------------
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -16,10 +15,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Also allow preflight
-app.options("*", (req, res) => {
-    res.sendStatus(200);
-});
+app.options("*", (req, res) => res.sendStatus(200));
 
 // ---------------------------
 // Static File Serving
@@ -42,10 +38,6 @@ app.get("/api/pitchers", (req, res) => {
         if (error) {
             console.error("R error:", error);
             return res.status(500).json({ error: "R script failed" });
-        }
-
-        if (stderr) {
-            console.error("R stderr:", stderr);
         }
 
         try {
@@ -71,26 +63,22 @@ app.get("/api/pitcherList", (req, res) => {
     fs.createReadStream(filePath)
         .pipe(csv())
         .on("data", (row) => {
-            const name = row.Player;
-            const id = row["Player-additional"] || null;
-
-            const gs  = Number(row.GS);
-            const era = Number(row.ERA);
-
             rows.push({
-                name,
-                id,
-                GS: Number.isNaN(gs) ? null : gs,
-                ERA: Number.isNaN(era) ? null : era
+                name: row.Player,
+                id: row["Player-additional"] || null,
+                GS: Number(row.GS) || null,
+                ERA: Number(row.ERA) || null
             });
         })
-        .on("end", () => {
-            res.json(rows);
+        .on("end", () => res.json(rows))
+        .on("error", (err) => {
+            console.error("CSV read error:", err);
+            res.status(500).json({ error: "CSV read failed" });
         });
 });
 
 // ---------------------------
-// Backend for Emoji Trend Button - Graph
+// API: Trend data (R script)
 // ---------------------------
 app.get("/api/pitcherTrend", async (req, res) => {
     const { name, stat } = req.query;
@@ -103,7 +91,7 @@ app.get("/api/pitcherTrend", async (req, res) => {
 
         try {
             const output = await new Promise((resolve) => {
-                exec(cmd, (error, stdout, stderr) => {
+                exec(cmd, (error, stdout) => {
                     if (error) return resolve(null);
                     resolve(stdout);
                 });
@@ -115,11 +103,7 @@ app.get("/api/pitcherTrend", async (req, res) => {
             }
 
             const json = JSON.parse(output);
-            let value = json.value;
-
-            if (value && typeof value === "object" && Object.keys(value).length === 0) {
-                value = null;
-            }
+            const value = json.value || null;
 
             results.push({ season, value });
 
@@ -128,7 +112,7 @@ app.get("/api/pitcherTrend", async (req, res) => {
         }
     }
 
-    res.json(results);
+    return res.json(results);
 });
 
 // --------------------------------------
@@ -136,21 +120,15 @@ app.get("/api/pitcherTrend", async (req, res) => {
 // --------------------------------------
 app.get("/api/last-updated/pitchers/:season", (req, res) => {
     const season = req.params.season;
-
-    const filePath = path.join(
-        __dirname,
-        `stathead_pitching_${season}.csv`
-    );
+    const filePath = path.join(__dirname, `stathead_pitching_${season}.csv`);
 
     fs.stat(filePath, (err, stats) => {
         if (err) {
             console.error("Timestamp error:", err);
-            return res.status(404).json({
-                error: `CSV for season ${season} not found`
-            });
+            return res.status(404).json({ error: `CSV for season ${season} not found` });
         }
 
-        res.json({
+        return res.json({
             season,
             lastUpdated: stats.mtime
         });
@@ -160,7 +138,7 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
 // ---------------------------
 // Start Server
 // ---------------------------
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Pitcher Analyzer running at http://localhost:${PORT}`);
 });
