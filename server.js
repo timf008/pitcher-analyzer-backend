@@ -15,7 +15,11 @@ app.use((req, res, next) => {
     next();
 });
 
-app.options("*", (req, res) => res.sendStatus(200));
+// FIXED: Express 5 requires a valid path pattern
+app.options("/*", (req, res) => {
+    res.sendStatus(200);
+});
+
 
 // ---------------------------
 // Static File Serving
