@@ -1,5 +1,5 @@
 const express = require("express");
-const cors = require("cors");   // <-- MUST be first import
+const cors = require("cors");   // MUST be first import
 const path = require("path");
 const { exec } = require("child_process");
 const csv = require("csv-parser");
@@ -22,11 +22,25 @@ app.use((req, res, next) => {
 // ---------------------------
 app.use(express.static(path.join(__dirname, "public")));
 
+// ---------------------------
+// Safe Rscript wrapper with timeout
+// ---------------------------
+function runR(cmd, timeoutMs = 8000) {
+    return new Promise((resolve) => {
+        exec(cmd, { timeout: timeoutMs }, (error, stdout) => {
+            if (error) {
+                console.error("R crashed or timed out:", error);
+                return resolve(null);
+            }
+            resolve(stdout);
+        });
+    });
+}
 
 // ---------------------------
 // API: Run R script for pitcher data
 // ---------------------------
-app.get("/api/pitchers", (req, res) => {
+app.get("/api/pitchers", async (req, res) => {
     const { name, season } = req.query;
 
     if (!name || !season) {
@@ -35,21 +49,20 @@ app.get("/api/pitchers", (req, res) => {
 
     const cmd = `Rscript "${path.join(__dirname, "stathead.r")}" "${name}" "${season}"`;
 
-    exec(cmd, (error, stdout, stderr) => {
-        if (error) {
-            console.error("R error:", error);
-            return res.status(500).json({ error: "R script failed" });
-        }
+    const output = await runR(cmd);
 
-        try {
-            const json = JSON.parse(stdout);
-            return res.json(json);
-        } catch (e) {
-            console.error("JSON parse error:", e);
-            console.log("Raw R output:", stdout);
-            return res.status(500).json({ error: "Invalid JSON from R" });
-        }
-    });
+    if (!output) {
+        return res.status(500).json({ error: "R timeout or crash" });
+    }
+
+    try {
+        const json = JSON.parse(output);
+        return res.json(json);
+    } catch (e) {
+        console.error("JSON parse error:", e);
+        console.log("Raw R output:", output);
+        return res.status(500).json({ error: "Invalid JSON from R" });
+    }
 });
 
 // -------------------------------------------
@@ -90,24 +103,17 @@ app.get("/api/pitcherTrend", async (req, res) => {
     for (const season of seasons) {
         const cmd = `Rscript "${path.join(__dirname, "trend.r")}" "${name}" "${stat}" ${season}`;
 
+        const output = await runR(cmd);
+
+        if (!output) {
+            results.push({ season, value: null });
+            continue;
+        }
+
         try {
-            const output = await new Promise((resolve) => {
-                exec(cmd, (error, stdout) => {
-                    if (error) return resolve(null);
-                    resolve(stdout);
-                });
-            });
-
-            if (!output) {
-                results.push({ season, value: null });
-                continue;
-            }
-
             const json = JSON.parse(output);
             const value = json.value || null;
-
             results.push({ season, value });
-
         } catch (e) {
             results.push({ season, value: null });
         }
