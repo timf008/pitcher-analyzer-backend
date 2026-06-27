@@ -32,9 +32,16 @@ nameClean <- clean(name)
 # Ensure Season numeric
 df$Season <- suppressWarnings(as.numeric(df$Season))
 
-# Detect SO and BB columns
-so_col <- names(df)[str_detect(names(df), "^SO")][1]
-bb_col <- names(df)[str_detect(names(df), "^BB$")][1]
+# -------------------------------
+# Detect SO and BB columns (patched)
+# -------------------------------
+# SO: choose the LAST "SO" column (real strikeouts)
+so_cols <- names(df)[str_detect(names(df), "^SO$")]
+so_col <- so_cols[length(so_cols)]
+
+# BB: choose the LAST "BB" column (not IBB)
+bb_cols <- names(df)[str_detect(names(df), "^BB$")]
+bb_col <- bb_cols[length(bb_cols)]
 
 # -------------------------------
 # Match row
@@ -57,5 +64,42 @@ if (stat == "Kpct") {
         value <- NA
     }
 
-} else if (stat
+} else if (stat == "BBpct") {
+
+    if ("BF" %in% names(row) && !is.na(row$BF)) {
+        value <- (row[[bb_col]] / row$BF) * 100
+    } else {
+        value <- NA
+    }
+
+} else if (stat == "KBB") {
+
+    value <- row[[so_col]] / row[[bb_col]]
+
+} else {
+
+    # Normal stat from CSV
+    value <- row[[stat]]
+}
+
+# -------------------------------
+# Normalize value
+# -------------------------------
+value <- unlist(value)
+
+if (is.null(value) || length(value) == 0) {
+    value <- NA
+}
+
+value <- suppressWarnings(as.numeric(value))
+
+if (is.null(value) || length(value) == 0 || is.na(value)) {
+    value <- NA
+}
+
+# -------------------------------
+# Output JSON
+# -------------------------------
+cat(toJSON(list(value = value), auto_unbox = TRUE))
+
 
