@@ -10,32 +10,18 @@ player_name <- args[1]
 season <- args[2]
 
 # ============================================================
-# Name Normalization (FIRST LAST — the old way)
-# Converts ALL formats → "First Last"
+# Clean names (FIRST LAST only — no reordering)
 # ============================================================
-normalize_name <- function(x) {
-    # Remove accents safely
+clean_name <- function(x) {
     x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
-
-    # Remove punctuation
     x <- gsub("[,*#†+]", "", x)
     x <- gsub("\\.", "", x)
     x <- gsub("\\s+", " ", x)
     x <- trimws(x)
-
-    # If "Last, First" → convert to "First Last"
-    if (grepl(",", x)) {
-        parts <- unlist(strsplit(x, ","))
-        last  <- trimws(parts[1])
-        first <- trimws(parts[2])
-        return(paste(first, last))
-    }
-
-    # Already "First Last"
-    return(x)
+    toupper(x)
 }
 
-player_name_clean <- normalize_name(player_name)
+player_name_clean <- clean_name(player_name)
 
 # ============================================================
 # Load CSV
@@ -69,9 +55,9 @@ if (is.na(name_col)) {
 }
 
 # ============================================================
-# Normalize CSV names (FIRST LAST)
+# Normalize CSV names (FIRST LAST only)
 # ============================================================
-df$NameClean <- sapply(df[[name_col]], normalize_name)
+df$NameClean <- clean_name(df[[name_col]])
 
 # ============================================================
 # Clean Season column
@@ -152,6 +138,4 @@ result <- p %>%
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
-
-
 
