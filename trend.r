@@ -8,23 +8,9 @@ stat <- args[2]
 season <- as.numeric(args[3])
 
 # -------------------------------
-# Name Normalization Helpers
+# Clean names (NO reordering)
 # -------------------------------
-
-# Convert "LAST, FIRST" → "FIRST LAST"
-fix_last_first <- function(x) {
-    if (grepl(",", x)) {
-        parts <- unlist(strsplit(x, ","))
-        first <- trimws(parts[2])
-        last  <- trimws(parts[1])
-        return(paste(first, last))
-    }
-    return(x)
-}
-
-# Clean and normalize names
 clean <- function(x) {
-    x <- fix_last_first(x)
     x <- trimws(x)
     x <- gsub("[,*#†+]", "", x)
     x <- gsub("\\.", "", x)
@@ -36,7 +22,6 @@ clean <- function(x) {
 # Load CSV
 # -------------------------------
 file_path <- sprintf("stathead_pitching_%s.csv", season)
-
 df <- read_csv(file_path, show_col_types = FALSE)
 
 # Normalize names
@@ -72,41 +57,5 @@ if (stat == "Kpct") {
         value <- NA
     }
 
-} else if (stat == "BBpct") {
-
-    if ("BF" %in% names(row) && !is.na(row$BF)) {
-        value <- (row[[bb_col]] / row$BF) * 100
-    } else {
-        value <- NA
-    }
-
-} else if (stat == "KBB") {
-
-    value <- row[[so_col]] / row[[bb_col]]
-
-} else {
-
-    # Normal stat from CSV
-    value <- row[[stat]]
-}
-
-# -------------------------------
-# Normalize value
-# -------------------------------
-value <- unlist(value)
-
-if (is.null(value) || length(value) == 0) {
-    value <- NA
-}
-
-value <- suppressWarnings(as.numeric(value))
-
-if (is.null(value) || length(value) == 0 || is.na(value)) {
-    value <- NA
-}
-
-# -------------------------------
-# Output JSON
-# -------------------------------
-cat(toJSON(list(value = value), auto_unbox = TRUE))
+} else if (stat
 
