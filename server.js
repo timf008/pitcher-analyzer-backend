@@ -4,17 +4,12 @@ const { exec } = require("child_process");
 const csv = require("csv-parser");
 const app = express();
 const fs = require("fs");
+const cors = require("cors");
 
 // ---------------------------
-// GLOBAL CORS (Express 5 safe)
+// GLOBAL CORS (Express 5 compatible)
 // ---------------------------
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    next();
-});
-
+app.use(cors());
 
 // ---------------------------
 // Static File Serving
