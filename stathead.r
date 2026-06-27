@@ -10,12 +10,12 @@ player_name <- args[1]
 season <- args[2]
 
 # ============================================================
-# Name Normalization (UTF-8 SAFE)
-# Converts ALL formats → "First Last" (original behavior)
+# Name Normalization (FIRST LAST — the old way)
+# Converts ALL formats → "First Last"
 # ============================================================
 normalize_name <- function(x) {
     # Remove accents safely
-    x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "")
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
 
     # Remove punctuation
     x <- gsub("[,*#†+]", "", x)
@@ -31,20 +31,20 @@ normalize_name <- function(x) {
         return(paste(first, last))
     }
 
-    # If already "First Last" → keep it
+    # Already "First Last"
     return(x)
 }
 
 player_name_clean <- normalize_name(player_name)
 
 # ============================================================
-# Load CSV (ABSOLUTE PATH FIX)
+# Load CSV
 # ============================================================
-file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
+file_path <- sprintf("stathead_pitching_%s.csv", season)
 
 if (!file.exists(file_path)) {
     cat(toJSON(list(error = paste("CSV not found:", file_path)), auto_unbox = TRUE))
-    quit(status = 1)
+    quit(status = 0)
 }
 
 df <- read_csv(file_path, show_col_types = FALSE)
@@ -65,11 +65,11 @@ name_col <- names(df)[str_detect(names(df), regex("^Player$", ignore_case = TRUE
 
 if (is.na(name_col)) {
     cat(toJSON(list(error = "No Player column found"), auto_unbox = TRUE))
-    quit(status = 1)
+    quit(status = 0)
 }
 
 # ============================================================
-# Normalize CSV names (First Last)
+# Normalize CSV names (FIRST LAST)
 # ============================================================
 df$NameClean <- sapply(df[[name_col]], normalize_name)
 
@@ -98,7 +98,7 @@ p <- df %>%
 
 if (nrow(p) == 0) {
     cat(toJSON(list(error = "Player not found"), auto_unbox = TRUE))
-    quit(status = 1)
+    quit(status = 0)
 }
 
 # ============================================================
@@ -152,4 +152,6 @@ result <- p %>%
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
+
+
 
