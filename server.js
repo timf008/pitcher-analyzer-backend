@@ -7,9 +7,19 @@ const fs = require("fs");
 const cors = require("cors");
 
 // ---------------------------
-// CORS (required for GitHub Pages frontend)
+// GLOBAL CORS (applies to ALL routes, ALL errors)
 // ---------------------------
-app.use(cors());
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    next();
+});
+
+// Also allow preflight
+app.options("*", (req, res) => {
+    res.sendStatus(200);
+});
 
 // ---------------------------
 // Static File Serving
@@ -20,11 +30,6 @@ app.use(express.static(path.join(__dirname, "public")));
 // API: Run R script for pitcher data
 // ---------------------------
 app.get("/api/pitchers", (req, res) => {
-    // Force CORS headers even on errors
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    res.header("Access-Control-Allow-Methods", "GET");
-
     const { name, season } = req.query;
 
     if (!name || !season) {
@@ -53,7 +58,6 @@ app.get("/api/pitchers", (req, res) => {
         }
     });
 });
-
 
 // -------------------------------------------
 // API: Return list of pitchers WITH GS + ERA
@@ -85,15 +89,10 @@ app.get("/api/pitcherList", (req, res) => {
         });
 });
 
-
 // ---------------------------
 // Backend for Emoji Trend Button - Graph
 // ---------------------------
 app.get("/api/pitcherTrend", async (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "GET");
-
     const { name, stat } = req.query;
     const seasons = [2025, 2024, 2023];
 
@@ -103,7 +102,7 @@ app.get("/api/pitcherTrend", async (req, res) => {
         const cmd = `Rscript "${path.join(__dirname, "trend.r")}" "${name}" "${stat}" ${season}`;
 
         try {
-            const output = await new Promise((resolve, reject) => {
+            const output = await new Promise((resolve) => {
                 exec(cmd, (error, stdout, stderr) => {
                     if (error) return resolve(null);
                     resolve(stdout);
@@ -131,8 +130,6 @@ app.get("/api/pitcherTrend", async (req, res) => {
 
     res.json(results);
 });
-
-
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
