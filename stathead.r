@@ -65,13 +65,15 @@ df$NameClean <- clean_name(df[[name_col]])
 df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
 
 # ============================================================
-# Detect SO and BB columns
+# Detect SO and BB columns (patched for duplicates)
 # ============================================================
-so_cols <- names(df)[str_detect(names(df), "^SO")]
-bb_cols <- names(df)[str_detect(names(df), "^BB$")]
+# SO: choose the LAST "SO" column (real strikeouts)
+so_cols <- names(df)[str_detect(names(df), "^SO$")]
+so_col <- so_cols[length(so_cols)]
 
-so_col <- so_cols[1]
-bb_col <- bb_cols[1]
+# BB: choose the LAST "BB" column (not IBB)
+bb_cols <- names(df)[str_detect(names(df), "^BB$")]
+bb_col <- bb_cols[length(bb_cols)]
 
 # ============================================================
 # Filter for player + season
@@ -138,4 +140,3 @@ result <- p %>%
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
-
