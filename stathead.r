@@ -10,12 +10,12 @@ player_name <- args[1]
 season <- args[2]
 
 # ============================================================
-# Name Normalization (THE FIX)
+# Name Normalization (UTF-8 SAFE)
 # Converts ALL formats → "LAST FIRST"
 # ============================================================
 normalize_name <- function(x) {
-    # Remove accents
-    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
+    # Remove accents safely
+    x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "")
 
     # Remove punctuation
     x <- gsub("[,*#†+]", "", x)
@@ -46,13 +46,13 @@ normalize_name <- function(x) {
 player_name_clean <- normalize_name(player_name)
 
 # ============================================================
-# Load CSV
+# Load CSV (ABSOLUTE PATH FIX)
 # ============================================================
-file_path <- sprintf("stathead_pitching_%s.csv", season)
+file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 
 if (!file.exists(file_path)) {
     cat(toJSON(list(error = paste("CSV not found:", file_path)), auto_unbox = TRUE))
-    quit(status = 0)
+    quit(status = 1)
 }
 
 df <- read_csv(file_path, show_col_types = FALSE)
@@ -73,7 +73,7 @@ name_col <- names(df)[str_detect(names(df), regex("^Player$", ignore_case = TRUE
 
 if (is.na(name_col)) {
     cat(toJSON(list(error = "No Player column found"), auto_unbox = TRUE))
-    quit(status = 0)
+    quit(status = 1)
 }
 
 # ============================================================
@@ -106,7 +106,7 @@ p <- df %>%
 
 if (nrow(p) == 0) {
     cat(toJSON(list(error = "Player not found"), auto_unbox = TRUE))
-    quit(status = 0)
+    quit(status = 1)
 }
 
 # ============================================================
@@ -160,5 +160,6 @@ result <- p %>%
   )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
+
 
 
