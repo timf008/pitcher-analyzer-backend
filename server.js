@@ -6,7 +6,7 @@ const app = express();
 const fs = require("fs");
 
 // ---------------------------
-// GLOBAL CORS (safe for all routes)
+// GLOBAL CORS (Express 5 safe)
 // ---------------------------
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -15,10 +15,11 @@ app.use((req, res, next) => {
     next();
 });
 
-// FIXED: Express 5 requires a valid path pattern
-app.options("/*", (req, res) => {
+// Express 5: global OPTIONS handler (NO PATH STRING)
+app.options((req, res) => {
     res.sendStatus(200);
 });
+
 
 
 // ---------------------------
