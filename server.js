@@ -11,6 +11,13 @@ const cors = require("cors");
 // ---------------------------
 app.use(cors());
 
+// Force CORS on ALL responses, including errors
+app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    next();
+});
+
+
 // ---------------------------
 // Static File Serving
 // ---------------------------
