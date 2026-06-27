@@ -15,12 +15,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Express 5: global OPTIONS handler (NO PATH STRING)
-app.options((req, res) => {
-    res.sendStatus(200);
-});
-
-
 
 // ---------------------------
 // Static File Serving
