@@ -1,27 +1,27 @@
 const express = require("express");
+const cors = require("cors");   // <-- MUST be first import
 const path = require("path");
 const { exec } = require("child_process");
 const csv = require("csv-parser");
 const app = express();
 const fs = require("fs");
-const cors = require("cors");
 
 // ---------------------------
-// GLOBAL CORS (Express 5 compatible)
+// GLOBAL CORS (MUST BE FIRST MIDDLEWARE)
 // ---------------------------
 app.use(cors());
 
-// Force CORS on ALL responses, including errors
+// Force CORS on ALL responses (including errors)
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     next();
 });
 
-
 // ---------------------------
 // Static File Serving
 // ---------------------------
 app.use(express.static(path.join(__dirname, "public")));
+
 
 // ---------------------------
 // API: Run R script for pitcher data
