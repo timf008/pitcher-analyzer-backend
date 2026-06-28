@@ -42,21 +42,19 @@ names(df) <- names(df) |>
   str_replace_all("%", "pct") |>
   str_replace_all("/", "_") |>
   str_replace_all("\\.", "") |>
-  str_replace_all(" ", "_")
+  str_replace_all(" ", "_") |>
+  trimws()
 
 # ============================================================
-# Detect Player column
+# Detect Player column (robust)
 # ============================================================
-name_col <- names(df)[str_detect(names(df), regex("^Player$", ignore_case = TRUE))][1]
+name_col <- names(df)[str_detect(names(df), regex("player", ignore_case = TRUE))][1]
 
 if (is.na(name_col)) {
     cat(toJSON(list(error = "No Player column found"), auto_unbox = TRUE))
     quit(status = 0)
 }
 
-# ============================================================
-# Normalize CSV names (FIRST LAST only)
-# ============================================================
 df$NameClean <- clean_name(df[[name_col]])
 
 # ============================================================
@@ -65,15 +63,20 @@ df$NameClean <- clean_name(df[[name_col]])
 df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
 
 # ============================================================
-# Detect SO and BB columns (patched for duplicates)
+# Detect SO and BB columns (robust)
 # ============================================================
-# SO: choose the LAST "SO" column (real strikeouts)
-so_cols <- names(df)[str_detect(names(df), "^SO$")]
+# SO: choose LAST column named exactly SO
+so_cols <- names(df)[names(df) == "SO"]
 so_col <- so_cols[length(so_cols)]
 
-# BB: choose the LAST "BB" column (not IBB)
-bb_cols <- names(df)[str_detect(names(df), "^BB$")]
+# BB: choose LAST column named exactly BB
+bb_cols <- names(df)[names(df) == "BB"]
 bb_col <- bb_cols[length(bb_cols)]
+
+if (is.na(so_col) || is.na(bb_col)) {
+    cat(toJSON(list(error = "Missing SO or BB column"), auto_unbox = TRUE))
+    quit(status = 0)
+}
 
 # ============================================================
 # Filter for player + season
