@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");   // MUST be first import
 const path = require("path");
 const { exec } = require("child_process");
-const csv = require("csv-parser");
 const app = express();
 const fs = require("fs");
 
@@ -66,33 +65,6 @@ app.get("/api/pitchers", async (req, res) => {
     }
 });
 
-
-// -------------------------------------------
-// API: Return list of pitchers WITH GS + ERA
-// -------------------------------------------
-app.get("/api/pitcherList", (req, res) => {
-    const { season } = req.query;
-
-    const filePath = path.join(__dirname, `stathead_pitching_${season}.csv`);
-
-    const rows = [];
-    fs.createReadStream(filePath)
-        .pipe(csv())
-        .on("data", (row) => {
-            rows.push({
-                name: row.Player,
-                id: row["Player-additional"] || null,
-                GS: Number(row.GS) || null,
-                ERA: Number(row.ERA) || null
-            });
-        })
-        .on("end", () => res.json(rows))
-        .on("error", (err) => {
-            console.error("CSV read error:", err);
-            res.status(500).json({ error: "CSV read failed" });
-        });
-});
-
 // ---------------------------
 // API: Trend data (current + previous season)
 // ---------------------------
@@ -108,9 +80,7 @@ app.get("/api/pitcherTrend", async (req, res) => {
 
     const results = {};
 
-    // Helper to run trend.r safely
     async function runTrend(seasonNumber) {
-        // ⭐ FIX: FORCE R TO RUN IN CORRECT DIRECTORY
         const cmd = `cd "${__dirname}" && Rscript "trend.r" "${name}" "${stat}" ${seasonNumber}`;
         const output = await runR(cmd);
 
@@ -126,7 +96,6 @@ app.get("/api/pitcherTrend", async (req, res) => {
         }
     }
 
-    // Run both seasons
     const currentValue = await runTrend(currentSeason);
     const previousValue = await runTrend(previousSeason);
 
@@ -138,7 +107,6 @@ app.get("/api/pitcherTrend", async (req, res) => {
 
     return res.json(results);
 });
-
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
@@ -163,7 +131,6 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
 // ---------------------------
 // Debug
 // ---------------------------
-
 app.get("/api/debug/stathead", async (req, res) => {
     const filePath = path.join(__dirname, "stathead.r");
     const exists = fs.existsSync(filePath);
@@ -187,12 +154,10 @@ app.get("/api/debug/csv", async (req, res) => {
 });
 
 app.get("/api/debug/r-read", async (req, res) => {
-    // ⭐ FIX: RUN R IN CORRECT DIRECTORY
     const cmd = `cd "${__dirname}" && Rscript -e "library(readr); df <- read_csv('stathead_pitching_2026.csv', show_col_types=FALSE); print(head(df))"`;
     const output = await runR(cmd);
     res.send(`<pre>${output || "NO OUTPUT"}</pre>`);
 });
-
 
 // ---------------------------
 // Start Server
