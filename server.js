@@ -47,8 +47,8 @@ app.get("/api/pitchers", async (req, res) => {
         return res.status(400).json({ error: "Missing name or season" });
     }
 
-    // FORCE R TO RUN IN /app
-    const cmd = `cd /app && Rscript "stathead.r" "${name}" "${season}"`;
+    // ⭐ FIX: FORCE R TO RUN IN THE CORRECT DIRECTORY
+    const cmd = `cd "${__dirname}" && Rscript "stathead.r" "${name}" "${season}"`;
 
     const output = await runR(cmd);
 
@@ -110,7 +110,8 @@ app.get("/api/pitcherTrend", async (req, res) => {
 
     // Helper to run trend.r safely
     async function runTrend(seasonNumber) {
-        const cmd = `Rscript "${path.join(__dirname, "trend.r")}" "${name}" "${stat}" ${seasonNumber}`;
+        // ⭐ FIX: FORCE R TO RUN IN CORRECT DIRECTORY
+        const cmd = `cd "${__dirname}" && Rscript "trend.r" "${name}" "${stat}" ${seasonNumber}`;
         const output = await runR(cmd);
 
         if (!output) return null;
@@ -139,7 +140,6 @@ app.get("/api/pitcherTrend", async (req, res) => {
 });
 
 
-
 // --------------------------------------
 // API: Last Updated timestamp for CSV
 // --------------------------------------
@@ -159,6 +159,10 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
         });
     });
 });
+
+// ---------------------------
+// Debug
+// ---------------------------
 
 app.get("/api/debug/stathead", async (req, res) => {
     const filePath = path.join(__dirname, "stathead.r");
@@ -183,11 +187,11 @@ app.get("/api/debug/csv", async (req, res) => {
 });
 
 app.get("/api/debug/r-read", async (req, res) => {
-    const cmd = `Rscript -e "library(readr); df <- read_csv('stathead_pitching_2026.csv', show_col_types=FALSE); print(head(df))"`;
+    // ⭐ FIX: RUN R IN CORRECT DIRECTORY
+    const cmd = `cd "${__dirname}" && Rscript -e "library(readr); df <- read_csv('stathead_pitching_2026.csv', show_col_types=FALSE); print(head(df))"`;
     const output = await runR(cmd);
     res.send(`<pre>${output || "NO OUTPUT"}</pre>`);
 });
-
 
 
 // ---------------------------
@@ -197,3 +201,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Pitcher Analyzer running at http://localhost:${PORT}`);
 });
+
