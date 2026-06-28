@@ -33,17 +33,24 @@ if (!file.exists(file_path)) {
     quit(status = 0)
 }
 
-df <- read_csv(file_path, show_col_types = FALSE)
+df <- suppressWarnings(read_csv(file_path, show_col_types = FALSE))
 
 # ============================================================
-# Normalize column names
+# Normalize column names (remove ALL hidden unicode)
 # ============================================================
+clean_col <- function(x) {
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
+    x <- gsub("[^A-Za-z0-9_]", "", x)  # remove BOM, NBSP, punctuation, weird chars
+    x
+}
+
 names(df) <- names(df) |>
   str_replace_all("%", "pct") |>
   str_replace_all("/", "_") |>
   str_replace_all("\\.", "") |>
   str_replace_all(" ", "_") |>
-  trimws()
+  trimws() |>
+  clean_col()
 
 # ============================================================
 # Detect Player column (robust)
@@ -60,23 +67,21 @@ df$NameClean <- clean_name(df[[name_col]])
 # ============================================================
 # Clean Season column
 # ============================================================
-df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
+df$Season <- suppressWarnings(as.numeric(gsub("[^0-9]", "", as.character(df$Season))))
 
 # ============================================================
-# Detect SO and BB columns (robust)
+# Detect SO and BB columns (bulletproof)
 # ============================================================
-# SO: choose LAST column named exactly SO
 so_cols <- names(df)[names(df) == "SO"]
-so_col <- so_cols[length(so_cols)]
-
-# BB: choose LAST column named exactly BB
 bb_cols <- names(df)[names(df) == "BB"]
-bb_col <- bb_cols[length(bb_cols)]
 
-if (is.na(so_col) || is.na(bb_col)) {
+if (length(so_cols) == 0 || length(bb_cols) == 0) {
     cat(toJSON(list(error = "Missing SO or BB column"), auto_unbox = TRUE))
     quit(status = 0)
 }
+
+so_col <- so_cols[length(so_cols)]
+bb_col <- bb_cols[length(bb_cols)]
 
 # ============================================================
 # Filter for player + season
@@ -97,20 +102,20 @@ if (nrow(p) == 0) {
 # ============================================================
 if ("BF" %in% names(p) && !is.na(p$BF)) {
 
-    p$Kpct <- (p[[so_col]] / p$BF) * 100
-    p$BBpct <- (p[[bb_col]] / p$BF) * 100
+    p$Kpct <- (as.numeric(p[[so_col]]) / as.numeric(p$BF)) * 100
+    p$BBpct <- (as.numeric(p[[bb_col]]) / as.numeric(p$BF)) * 100
 
 } else if (all(c("IP", "H", "BB", "HBP") %in% names(p))) {
 
-    est_BF <- (p$IP * 3) + p$H + p$BB + p$HBP
+    est_BF <- (as.numeric(p$IP) * 3) + as.numeric(p$H) + as.numeric(p$BB) + as.numeric(p$HBP)
 
-    p$Kpct <- (p[[so_col]] / est_BF) * 100
-    p$BBpct <- (p[[bb_col]] / est_BF) * 100
+    p$Kpct <- (as.numeric(p[[so_col]]) / est_BF) * 100
+    p$BBpct <- (as.numeric(p[[bb_col]]) / est_BF) * 100
 
 } else if (all(c("SO9", "BB9") %in% names(p))) {
 
-    p$Kpct <- (p$SO9 / 27) * 100
-    p$BBpct <- (p$BB9 / 27) * 100
+    p$Kpct <- (as.numeric(p$SO9) / 27) * 100
+    p$BBpct <- (as.numeric(p$BB9) / 27) * 100
 
 } else {
     p$Kpct <- NA
@@ -121,25 +126,27 @@ if ("BF" %in% names(p) && !is.na(p$BF)) {
 # Compute K/BB if missing
 # ============================================================
 if (!"SO_BB" %in% names(p)) {
-    p$SO_BB <- p[[so_col]] / p[[bb_col]]
+    p$SO_BB <- as.numeric(p[[so_col]]) / as.numeric(p[[bb_col]])
 }
 
 # ============================================================
-# Build JSON output
+# Build JSON output (suppress warnings)
 # ============================================================
-result <- p %>%
-  transmute(
-    ERA  = as.numeric(ERA),
-    WHIP = as.numeric(WHIP),
-    Kpct = as.numeric(Kpct),
-    BBpct = as.numeric(BBpct),
-    KBB = as.numeric(SO_BB),
-    IP = as.numeric(IP),
-    HR9 = as.numeric(HR9),
-    FIP = as.numeric(FIP),
-    W = as.numeric(W),
-    L = as.numeric(L),
-    GS = as.numeric(GS)
-  )
+result <- suppressWarnings(
+    p %>%
+      transmute(
+        ERA  = as.numeric(ERA),
+        WHIP = as.numeric(WHIP),
+        Kpct = as.numeric(Kpct),
+        BBpct = as.numeric(BBpct),
+        KBB = as.numeric(SO_BB),
+        IP = as.numeric(IP),
+        HR9 = as.numeric(HR9),
+        FIP = as.numeric(FIP),
+        W = as.numeric(W),
+        L = as.numeric(L),
+        GS = as.numeric(GS)
+      )
+)
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
