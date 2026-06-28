@@ -61,46 +61,6 @@ app.get("/api/pitchers", async (req, res) => {
     }
 });
 
-// ---------------------------
-// API: Trend data (current + previous season)
-// ---------------------------
-app.get("/api/pitcherTrend", async (req, res) => {
-    const { name, stat, season } = req.query;
-
-    if (!name || !stat || !season) {
-        return res.status(400).json({ error: "Missing name, stat, or season" });
-    }
-
-    const currentSeason = Number(season);
-    const previousSeason = currentSeason - 1;
-
-    async function runTrend(seasonNumber) {
-        const cmd = `cd "${__dirname}" && Rscript "trend.r" "${name}" "${stat}" ${seasonNumber}`;
-        const output = await runR(cmd);
-
-        if (!output) return null;
-
-        try {
-            const cleaned = output.trim().split("\n").slice(-1)[0];
-            const json = JSON.parse(cleaned);
-            return json.value ?? null;
-        } catch (e) {
-            console.error("Trend JSON parse error:", e);
-            console.log("Raw R output:", output);
-            return null;
-        }
-    }
-
-    const currentValue = await runTrend(currentSeason);
-    const previousValue = await runTrend(previousSeason);
-
-    return res.json({
-        currentSeason,
-        currentValue,
-        previousSeason,
-        previousValue
-    });
-});
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
