@@ -77,7 +77,7 @@ if (is.na(name_col)) {
 }
 
 # ============================================================
-# Normalize CSV names
+# Normalize CSV names (UTF-8 SAFE)
 # ============================================================
 df$NameClean <- sapply(df[[name_col]], normalize_name)
 
