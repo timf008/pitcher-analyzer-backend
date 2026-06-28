@@ -39,9 +39,10 @@ df <- suppressWarnings(read_csv(file_path, show_col_types = FALSE))
 # Normalize column names (remove ALL hidden unicode + NBSP)
 # ============================================================
 clean_col <- function(x) {
-    x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
-    x <- gsub("[[:space:]]+", "", x)      # remove ALL whitespace (space, NBSP, tabs)
-    x <- gsub("[^A-Za-z0-9_]", "", x)     # remove punctuation, BOM, unicode
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+    x <- gsub("[\u00A0\u200B\u200C\u200D\uFEFF]", "", x)  # NBSP, ZWSP, ZWNJ, ZWJ, BOM
+    x <- gsub("[[:space:]]+", "", x)                     # remove ASCII whitespace
+    x <- gsub("[^A-Za-z0-9_]", "", x)                    # remove punctuation
     x
 }
 
@@ -71,9 +72,12 @@ df$NameClean <- clean_name(df[[name_col]])
 df$Season <- suppressWarnings(as.numeric(gsub("[^0-9]", "", as.character(df$Season))))
 
 # ============================================================
-# Detect SO and BB columns (bulletproof)
+# Detect SO and BB columns (NEW — works with SO3, SO25, etc.)
 # ============================================================
-so_cols <- names(df)[names(df) == "SO"]
+# Any column that *starts* with SO is a strikeout column
+so_cols <- names(df)[str_detect(names(df), "^SO")]
+
+# BB is still BB
 bb_cols <- names(df)[names(df) == "BB"]
 
 if (length(so_cols) == 0 || length(bb_cols) == 0) {
@@ -81,6 +85,7 @@ if (length(so_cols) == 0 || length(bb_cols) == 0) {
     quit(status = 0)
 }
 
+# Use the LAST SO column (Stathead puts the real SO last)
 so_col <- so_cols[length(so_cols)]
 bb_col <- bb_cols[length(bb_cols)]
 
@@ -151,3 +156,4 @@ result <- suppressWarnings(
 )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
+
