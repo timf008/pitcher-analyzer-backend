@@ -11,7 +11,7 @@ season <- args[2]
 
 # ============================================================
 # Name Normalization (UTF-8 SAFE)
-# Converts ALL formats → "LAST FIRST"
+# Converts ALL formats → "FIRST LAST"
 # ============================================================
 normalize_name <- function(x) {
     # Remove accents safely
@@ -23,20 +23,20 @@ normalize_name <- function(x) {
     x <- gsub("\\s+", " ", x)
     x <- trimws(x)
 
-    # If already "Last, First"
+    # If "Last, First" → convert to "First Last"
     if (grepl(",", x)) {
         parts <- unlist(strsplit(x, ","))
         last  <- trimws(parts[1])
         first <- trimws(parts[2])
-        return(toupper(paste(last, first)))
+        return(toupper(paste(first, last)))
     }
 
-    # If "First Last"
+    # If already "First Last"
     parts <- unlist(strsplit(x, " "))
     if (length(parts) == 2) {
         first <- parts[1]
         last  <- parts[2]
-        return(toupper(paste(last, first)))
+        return(toupper(paste(first, last)))
     }
 
     # Fallback
