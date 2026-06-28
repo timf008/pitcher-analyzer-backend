@@ -47,7 +47,8 @@ app.get("/api/pitchers", async (req, res) => {
         return res.status(400).json({ error: "Missing name or season" });
     }
 
-    const cmd = `Rscript "${path.join(__dirname, "stathead.r")}" "${name}" "${season}"`;
+    // FORCE R TO RUN IN /app
+    const cmd = `cd /app && Rscript "stathead.r" "${name}" "${season}"`;
 
     const output = await runR(cmd);
 
@@ -64,6 +65,7 @@ app.get("/api/pitchers", async (req, res) => {
         return res.status(500).json({ error: "Invalid JSON from R" });
     }
 });
+
 
 // -------------------------------------------
 // API: Return list of pitchers WITH GS + ERA
