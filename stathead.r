@@ -55,6 +55,9 @@ if (!file.exists(file_path)) {
     quit(status = 1)
 }
 
+print(paste("CSV exists:", file.exists(file_path)))
+print(paste("CSV size:", file.info(file_path)$size))
+
 df <- read_csv(file_path, show_col_types = FALSE)
 print(head(df))
 
