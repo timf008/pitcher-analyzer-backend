@@ -78,8 +78,6 @@ app.get("/api/pitcherTrend", async (req, res) => {
     const currentSeason = Number(season);
     const previousSeason = currentSeason - 1;
 
-    const results = {};
-
     async function runTrend(seasonNumber) {
         const cmd = `cd "${__dirname}" && Rscript "trend.r" "${name}" "${stat}" ${seasonNumber}`;
         const output = await runR(cmd);
@@ -87,8 +85,9 @@ app.get("/api/pitcherTrend", async (req, res) => {
         if (!output) return null;
 
         try {
-            const json = JSON.parse(output);
-            return (json && "value" in json) ? json.value : null;
+            const cleaned = output.trim().split("\n").slice(-1)[0];
+            const json = JSON.parse(cleaned);
+            return json.value ?? null;
         } catch (e) {
             console.error("Trend JSON parse error:", e);
             console.log("Raw R output:", output);
@@ -99,14 +98,14 @@ app.get("/api/pitcherTrend", async (req, res) => {
     const currentValue = await runTrend(currentSeason);
     const previousValue = await runTrend(previousSeason);
 
-    results.currentSeason = currentSeason;
-    results.currentValue = currentValue;
-
-    results.previousSeason = previousSeason;
-    results.previousValue = previousValue;
-
-    return res.json(results);
+    return res.json({
+        currentSeason,
+        currentValue,
+        previousSeason,
+        previousValue
+    });
 });
+
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
