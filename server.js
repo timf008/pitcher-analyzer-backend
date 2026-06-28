@@ -143,6 +143,28 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
 });
 
 // ---------------------------
+// Debug Columns
+// ---------------------------
+app.get("/api/debug/columns", async (req, res) => {
+    const { season } = req.query;
+    const cmd = `Rscript "${path.join(__dirname, "debug_columns.r")}" "${season}"`;
+
+    const output = await runR(cmd);
+
+    if (!output) {
+        return res.status(500).json({ error: "R timeout or crash" });
+    }
+
+    try {
+        const json = JSON.parse(output);
+        return res.json(json);
+    } catch (e) {
+        return res.status(500).json({ error: "Invalid JSON", raw: output });
+    }
+});
+
+
+// ---------------------------
 // Start Server
 // ---------------------------
 const PORT = process.env.PORT || 3000;
