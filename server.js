@@ -16,6 +16,19 @@ app.use((req, res, next) => {
 });
 
 // ---------------------------
+// Name Normalization (Latin accents → ASCII)
+// ---------------------------
+function normalizeNameBackend(x) {
+    return x
+        .normalize("NFKD")               // split accents
+        .replace(/[\u0300-\u036f]/g, "") // remove diacritics
+        .replace(/[^\w\s-]/g, "")        // remove non-ASCII
+        .replace(/\s+/g, " ")            // collapse spaces
+        .trim()
+        .toUpperCase();                  // match CSV uppercase
+}
+
+// ---------------------------
 // Safe Rscript wrapper with timeout
 // ---------------------------
 function runR(cmd, timeoutMs = 8000) {
@@ -38,11 +51,14 @@ function runR(cmd, timeoutMs = 8000) {
 // API: Run R script for pitcher data
 // ---------------------------
 app.get("/api/pitchers", async (req, res) => {
-    const { name, season } = req.query;
+    let { name, season } = req.query;
 
     if (!name || !season) {
         return res.status(400).json({ error: "Missing name or season" });
     }
+
+    // ⭐ Normalize accented names
+    name = normalizeNameBackend(name);
 
     const cmd = `cd "${__dirname}" && Rscript "stathead.r" "${name}" "${season}"`;
     const output = await runR(cmd);
@@ -60,7 +76,6 @@ app.get("/api/pitchers", async (req, res) => {
         return res.status(500).json({ error: "Invalid JSON from R" });
     }
 });
-
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
@@ -94,5 +109,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Pitcher Analyzer running at http://localhost:${PORT}`);
 });
+
 
 
