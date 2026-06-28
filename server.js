@@ -158,6 +158,13 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
     });
 });
 
+app.get("/api/debug/stathead", async (req, res) => {
+    const filePath = path.join(__dirname, "stathead.r");
+    const exists = fs.existsSync(filePath);
+    res.json({ stathead_exists: exists, path: filePath });
+});
+
+
 
 // ---------------------------
 // Start Server
