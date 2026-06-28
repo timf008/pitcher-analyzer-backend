@@ -15,7 +15,8 @@ season <- args[2]
 # ============================================================
 normalize_name <- function(x) {
     # Remove accents safely
-    x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "")
+    x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+
 
     # Remove punctuation
     x <- gsub("[,*#†+]", "", x)
