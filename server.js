@@ -92,46 +92,50 @@ app.get("/api/pitcherList", (req, res) => {
 });
 
 // ---------------------------
-// API: Trend data (R script)
+// API: Trend data (current + previous season)
 // ---------------------------
 app.get("/api/pitcherTrend", async (req, res) => {
-    const { name, stat } = req.query;
+    const { name, stat, season } = req.query;
 
-    if (!name || !stat) {
-        return res.status(400).json({ error: "Missing name or stat" });
+    if (!name || !stat || !season) {
+        return res.status(400).json({ error: "Missing name, stat, or season" });
     }
 
-    // MUST be numeric — this was the cause of your null values
-    const seasons = [2025, 2024, 2023].map(Number);
+    const currentSeason = Number(season);
+    const previousSeason = currentSeason - 1;
 
-    const results = [];
+    const results = {};
 
-    for (const season of seasons) {
-        const cmd = `Rscript "${path.join(__dirname, "trend.r")}" "${name}" "${stat}" ${season}`;
-
+    // Helper to run trend.r safely
+    async function runTrend(seasonNumber) {
+        const cmd = `Rscript "${path.join(__dirname, "trend.r")}" "${name}" "${stat}" ${seasonNumber}`;
         const output = await runR(cmd);
 
-        if (!output) {
-            results.push({ season, value: null });
-            continue;
-        }
+        if (!output) return null;
 
         try {
             const json = JSON.parse(output);
-
-            // IMPORTANT: json.value might be 0, so we cannot use "|| null"
-            const value = (json && "value" in json) ? json.value : null;
-
-            results.push({ season, value });
+            return (json && "value" in json) ? json.value : null;
         } catch (e) {
             console.error("Trend JSON parse error:", e);
             console.log("Raw R output:", output);
-            results.push({ season, value: null });
+            return null;
         }
     }
 
+    // Run both seasons
+    const currentValue = await runTrend(currentSeason);
+    const previousValue = await runTrend(previousSeason);
+
+    results.currentSeason = currentSeason;
+    results.currentValue = currentValue;
+
+    results.previousSeason = previousSeason;
+    results.previousValue = previousValue;
+
     return res.json(results);
 });
+
 
 
 // --------------------------------------
