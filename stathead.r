@@ -4,6 +4,7 @@ library(readr)
 library(dplyr)
 library(jsonlite)
 library(stringr)
+library(stringi)
 
 args <- commandArgs(trailingOnly = TRUE)
 player_name <- args[1]
@@ -14,17 +15,14 @@ season <- args[2]
 # Converts ALL formats → "FIRST LAST"
 # ============================================================
 normalize_name <- function(x) {
-    # Remove accents safely
-    x <- iconv(x, from = "", to = "ASCII//TRANSLIT", sub = "")
+    # Remove accents reliably
+    x <- stri_trans_general(x, "Latin-ASCII")
 
-
-    # Remove punctuation
     x <- gsub("[,*#†+]", "", x)
     x <- gsub("\\.", "", x)
     x <- gsub("\\s+", " ", x)
     x <- trimws(x)
 
-    # If "Last, First" → convert to "First Last"
     if (grepl(",", x)) {
         parts <- unlist(strsplit(x, ","))
         last  <- trimws(parts[1])
@@ -32,7 +30,6 @@ normalize_name <- function(x) {
         return(toupper(paste(first, last)))
     }
 
-    # If already "First Last"
     parts <- unlist(strsplit(x, " "))
     if (length(parts) == 2) {
         first <- parts[1]
@@ -40,7 +37,6 @@ normalize_name <- function(x) {
         return(toupper(paste(first, last)))
     }
 
-    # Fallback
     return(toupper(x))
 }
 
