@@ -24,9 +24,9 @@ clean_name <- function(x) {
 player_name_clean <- clean_name(player_name)
 
 # ============================================================
-# Load CSV
+# Load CSV (ABSOLUTE PATH FIX FOR RENDER)
 # ============================================================
-file_path <- sprintf("stathead_pitching_%s.csv", season)
+file_path <- sprintf("/app/stathead_pitching_%s.csv", season)
 
 if (!file.exists(file_path)) {
     cat(toJSON(list(error = paste("CSV not found:", file_path)), auto_unbox = TRUE))
@@ -74,10 +74,7 @@ df$Season <- suppressWarnings(as.numeric(gsub("[^0-9]", "", as.character(df$Seas
 # ============================================================
 # Detect SO and BB columns (NEW — works with SO3, SO25, etc.)
 # ============================================================
-# Any column that *starts* with SO is a strikeout column
 so_cols <- names(df)[str_detect(names(df), "^SO")]
-
-# BB is still BB
 bb_cols <- names(df)[names(df) == "BB"]
 
 if (length(so_cols) == 0 || length(bb_cols) == 0) {
@@ -85,7 +82,6 @@ if (length(so_cols) == 0 || length(bb_cols) == 0) {
     quit(status = 0)
 }
 
-# Use the LAST SO column (Stathead puts the real SO last)
 so_col <- so_cols[length(so_cols)]
 bb_col <- bb_cols[length(bb_cols)]
 
@@ -156,4 +152,3 @@ result <- suppressWarnings(
 )
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
-
