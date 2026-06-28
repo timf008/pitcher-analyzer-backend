@@ -60,6 +60,9 @@ app.get("/api/pitchers", async (req, res) => {
     // ⭐ Normalize accented names
     name = normalizeNameBackend(name);
 
+    // ⭐ DEBUG LOG — THIS IS WHAT WE NEED
+    console.log("Normalized name sent to R:", name);
+
     const cmd = `cd "${__dirname}" && Rscript "stathead.r" "${name}" "${season}"`;
     const output = await runR(cmd);
 
