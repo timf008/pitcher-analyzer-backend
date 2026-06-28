@@ -96,7 +96,13 @@ app.get("/api/pitcherList", (req, res) => {
 // ---------------------------
 app.get("/api/pitcherTrend", async (req, res) => {
     const { name, stat } = req.query;
-    const seasons = [2025, 2024, 2023];
+
+    if (!name || !stat) {
+        return res.status(400).json({ error: "Missing name or stat" });
+    }
+
+    // MUST be numeric — this was the cause of your null values
+    const seasons = [2025, 2024, 2023].map(Number);
 
     const results = [];
 
@@ -112,15 +118,21 @@ app.get("/api/pitcherTrend", async (req, res) => {
 
         try {
             const json = JSON.parse(output);
-            const value = json.value || null;
+
+            // IMPORTANT: json.value might be 0, so we cannot use "|| null"
+            const value = (json && "value" in json) ? json.value : null;
+
             results.push({ season, value });
         } catch (e) {
+            console.error("Trend JSON parse error:", e);
+            console.log("Raw R output:", output);
             results.push({ season, value: null });
         }
     }
 
     return res.json(results);
 });
+
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
@@ -140,27 +152,6 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
             lastUpdated: stats.mtime
         });
     });
-});
-
-// ---------------------------
-// Debug Columns
-// ---------------------------
-app.get("/api/debug/columns", async (req, res) => {
-    const { season } = req.query;
-    const cmd = `Rscript "${path.join(__dirname, "debug_columns.r")}" "${season}"`;
-
-    const output = await runR(cmd);
-
-    if (!output) {
-        return res.status(500).json({ error: "R timeout or crash" });
-    }
-
-    try {
-        const json = JSON.parse(output);
-        return res.json(json);
-    } catch (e) {
-        return res.status(500).json({ error: "Invalid JSON", raw: output });
-    }
 });
 
 
