@@ -35,11 +35,12 @@ if (!file.exists(file_path)) {
 df <- suppressWarnings(read_csv(file_path, show_col_types = FALSE))
 
 # ============================================================
-# Normalize column names (remove ALL hidden unicode)
+# Normalize column names (remove ALL hidden unicode + NBSP)
 # ============================================================
 clean_col <- function(x) {
     x <- iconv(x, from = "", to = "ASCII//TRANSLIT")
-    x <- gsub("[^A-Za-z0-9_]", "", x)
+    x <- gsub("[[:space:]]+", "", x)      # remove ALL whitespace (space, NBSP, tabs)
+    x <- gsub("[^A-Za-z0-9_]", "", x)     # remove punctuation, BOM, unicode
     x
 }
 
@@ -138,6 +139,3 @@ if (is.null(value) || length(value) == 0 || is.na(value)) {
 # Output JSON
 # ============================================================
 cat(toJSON(list(value = value), auto_unbox = TRUE))
-
-
-
