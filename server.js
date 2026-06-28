@@ -180,6 +180,12 @@ app.get("/api/debug/csv", async (req, res) => {
     res.json({ csv_exists: exists, path: filePath });
 });
 
+app.get("/api/debug/r-read", async (req, res) => {
+    const cmd = `Rscript -e "library(readr); df <- read_csv('stathead_pitching_2026.csv', show_col_types=FALSE); print(head(df))"`;
+    const output = await runR(cmd);
+    res.send(`<pre>${output || "NO OUTPUT"}</pre>`);
+});
+
 
 
 // ---------------------------
