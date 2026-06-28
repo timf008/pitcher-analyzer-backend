@@ -173,6 +173,13 @@ app.get("/api/debug/rscript", async (req, res) => {
     });
 });
 
+app.get("/api/debug/csv", async (req, res) => {
+    const season = req.query.season || "2026";
+    const filePath = path.join(__dirname, `stathead_pitching_${season}.csv`);
+    const exists = fs.existsSync(filePath);
+    res.json({ csv_exists: exists, path: filePath });
+});
+
 
 
 // ---------------------------
