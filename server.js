@@ -82,37 +82,6 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
     });
 });
 
-// ---------------------------
-// Debug Routes
-// ---------------------------
-app.get("/api/debug/stathead", (req, res) => {
-    const filePath = path.join(__dirname, "stathead.r");
-    const exists = fs.existsSync(filePath);
-    res.json({ stathead_exists: exists, path: filePath });
-});
-
-app.get("/api/debug/rscript", (req, res) => {
-    exec("which Rscript", (err, stdout) => {
-        res.json({
-            rscript_path: stdout.trim(),
-            error: err ? err.message : null
-        });
-    });
-});
-
-app.get("/api/debug/csv", (req, res) => {
-    const season = req.query.season || "2026";
-    const filePath = path.join(__dirname, `stathead_pitching_${season}.csv`);
-    const exists = fs.existsSync(filePath);
-    res.json({ csv_exists: exists, path: filePath });
-});
-
-app.get("/api/debug/r-read", async (req, res) => {
-    const cmd = `cd "${__dirname}" && Rscript -e "library(readr); df <- read_csv('stathead_pitching_2026.csv', show_col_types=FALSE); print(head(df))"`;
-    const output = await runR(cmd);
-    res.send(`<pre>${output || "NO OUTPUT"}</pre>`);
-});
-
 // ===========================================================
 // STATIC FILES — MUST COME LAST
 // ===========================================================
