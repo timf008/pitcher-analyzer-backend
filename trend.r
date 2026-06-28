@@ -139,3 +139,4 @@ if (is.null(value) || length(value) == 0 || is.na(value)) {
 # Output JSON
 # ============================================================
 cat(toJSON(list(value = value), auto_unbox = TRUE))
+
