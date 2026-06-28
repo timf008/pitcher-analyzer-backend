@@ -14,16 +14,12 @@ season <- args[2]
 # Converts ALL formats → "FIRST LAST"
 # ============================================================
 normalize_name <- function(x) {
-    # Remove accents safely
     x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "")
-
-    # Remove punctuation
     x <- gsub("[,*#†+]", "", x)
     x <- gsub("\\.", "", x)
     x <- gsub("\\s+", " ", x)
     x <- trimws(x)
 
-    # If "Last, First" → convert to "First Last"
     if (grepl(",", x)) {
         parts <- unlist(strsplit(x, ","))
         last  <- trimws(parts[1])
@@ -31,7 +27,6 @@ normalize_name <- function(x) {
         return(toupper(paste(first, last)))
     }
 
-    # If already "First Last"
     parts <- unlist(strsplit(x, " "))
     if (length(parts) == 2) {
         first <- parts[1]
@@ -39,14 +34,13 @@ normalize_name <- function(x) {
         return(toupper(paste(first, last)))
     }
 
-    # Fallback
     return(toupper(x))
 }
 
 player_name_clean <- normalize_name(player_name)
 
 # ============================================================
-# Load CSV (ABSOLUTE PATH FIX)
+# Load CSV
 # ============================================================
 file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 
@@ -57,7 +51,9 @@ if (!file.exists(file_path)) {
 
 df <- read_csv(file_path, show_col_types = FALSE)
 
-# ⭐ DEBUG: Print CSV head BEFORE anything else
+# ============================================================
+# DEBUG — BEFORE ANYTHING CAN CRASH
+# ============================================================
 print("=== CSV EXISTS? ===")
 print(file.exists(file_path))
 
@@ -69,13 +65,16 @@ print(head(df))
 print("=== END CSV HEAD ===")
 
 # ============================================================
-# Normalize column names
+# Normalize column names (duplicate-safe)
 # ============================================================
-names(df) <- names(df) |>
+clean_names <- names(df) |>
   str_replace_all("%", "pct") |>
   str_replace_all("/", "_") |>
   str_replace_all("\\.", "") |>
   str_replace_all(" ", "_")
+
+clean_names <- make.unique(clean_names, sep = "_")
+names(df) <- clean_names
 
 # ============================================================
 # Detect Player column
@@ -88,7 +87,7 @@ if (is.na(name_col)) {
 }
 
 # ============================================================
-# Normalize CSV names (UTF-8 SAFE)
+# Normalize CSV names
 # ============================================================
 df$NameClean <- sapply(df[[name_col]], normalize_name)
 
@@ -98,13 +97,13 @@ df$NameClean <- sapply(df[[name_col]], normalize_name)
 df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
 
 # ============================================================
-# Detect SO and BB columns
+# Detect SO and BB columns (duplicate-safe)
 # ============================================================
 so_cols <- names(df)[str_detect(names(df), "^SO")]
 bb_cols <- names(df)[str_detect(names(df), "^BB$")]
 
-so_col <- so_cols[1]
-bb_col <- bb_cols[1]
+so_col <- tail(so_cols, 1)
+bb_col <- tail(bb_cols, 1)
 
 # ============================================================
 # Filter for player + season
