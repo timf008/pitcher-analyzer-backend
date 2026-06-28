@@ -1,26 +1,19 @@
 const express = require("express");
-const cors = require("cors");   // MUST be first import
+const cors = require("cors");
 const path = require("path");
 const { exec } = require("child_process");
-const app = express();
 const fs = require("fs");
 
+const app = express();
+
 // ---------------------------
-// GLOBAL CORS (MUST BE FIRST MIDDLEWARE)
+// GLOBAL CORS (must be first)
 // ---------------------------
 app.use(cors());
-
-
-// Force CORS on ALL responses (including errors)
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     next();
 });
-
-// ---------------------------
-// Static File Serving
-// ---------------------------
-app.use(express.static(path.join(__dirname, "public")));
 
 // ---------------------------
 // Safe Rscript wrapper with timeout
@@ -37,6 +30,10 @@ function runR(cmd, timeoutMs = 8000) {
     });
 }
 
+// ===========================================================
+// API ROUTES — MUST COME BEFORE STATIC FILES
+// ===========================================================
+
 // ---------------------------
 // API: Run R script for pitcher data
 // ---------------------------
@@ -47,9 +44,7 @@ app.get("/api/pitchers", async (req, res) => {
         return res.status(400).json({ error: "Missing name or season" });
     }
 
-    // ⭐ FIX: FORCE R TO RUN IN THE CORRECT DIRECTORY
     const cmd = `cd "${__dirname}" && Rscript "stathead.r" "${name}" "${season}"`;
-
     const output = await runR(cmd);
 
     if (!output) {
@@ -107,7 +102,6 @@ app.get("/api/pitcherTrend", async (req, res) => {
     });
 });
 
-
 // --------------------------------------
 // API: Last Updated timestamp for CSV
 // --------------------------------------
@@ -129,15 +123,15 @@ app.get("/api/last-updated/pitchers/:season", (req, res) => {
 });
 
 // ---------------------------
-// Debug
+// Debug Routes
 // ---------------------------
-app.get("/api/debug/stathead", async (req, res) => {
+app.get("/api/debug/stathead", (req, res) => {
     const filePath = path.join(__dirname, "stathead.r");
     const exists = fs.existsSync(filePath);
     res.json({ stathead_exists: exists, path: filePath });
 });
 
-app.get("/api/debug/rscript", async (req, res) => {
+app.get("/api/debug/rscript", (req, res) => {
     exec("which Rscript", (err, stdout) => {
         res.json({
             rscript_path: stdout.trim(),
@@ -146,7 +140,7 @@ app.get("/api/debug/rscript", async (req, res) => {
     });
 });
 
-app.get("/api/debug/csv", async (req, res) => {
+app.get("/api/debug/csv", (req, res) => {
     const season = req.query.season || "2026";
     const filePath = path.join(__dirname, `stathead_pitching_${season}.csv`);
     const exists = fs.existsSync(filePath);
@@ -159,6 +153,11 @@ app.get("/api/debug/r-read", async (req, res) => {
     res.send(`<pre>${output || "NO OUTPUT"}</pre>`);
 });
 
+// ===========================================================
+// STATIC FILES — MUST COME LAST
+// ===========================================================
+app.use(express.static(path.join(__dirname, "public")));
+
 // ---------------------------
 // Start Server
 // ---------------------------
@@ -166,4 +165,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Pitcher Analyzer running at http://localhost:${PORT}`);
 });
+
 
