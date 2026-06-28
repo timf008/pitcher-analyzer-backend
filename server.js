@@ -9,6 +9,8 @@ const fs = require("fs");
 // GLOBAL CORS (MUST BE FIRST MIDDLEWARE)
 // ---------------------------
 app.use(cors());
+app.options("*", cors());   // ⭐ REQUIRED FOR GITHUB PAGES
+
 
 // Force CORS on ALL responses (including errors)
 app.use((req, res, next) => {
