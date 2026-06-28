@@ -11,7 +11,6 @@ season <- args[2]
 
 # ============================================================
 # Name Normalization (UTF-8 SAFE)
-# Converts ALL formats → "FIRST LAST"
 # ============================================================
 normalize_name <- function(x) {
     x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "")
@@ -73,7 +72,9 @@ clean_names <- names(df) |>
   str_replace_all("\\.", "") |>
   str_replace_all(" ", "_")
 
+# ⭐ THIS IS THE CRASH FIX
 clean_names <- make.unique(clean_names, sep = "_")
+
 names(df) <- clean_names
 
 # ============================================================
