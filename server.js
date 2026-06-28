@@ -164,6 +164,15 @@ app.get("/api/debug/stathead", async (req, res) => {
     res.json({ stathead_exists: exists, path: filePath });
 });
 
+app.get("/api/debug/rscript", async (req, res) => {
+    exec("which Rscript", (err, stdout) => {
+        res.json({
+            rscript_path: stdout.trim(),
+            error: err ? err.message : null
+        });
+    });
+});
+
 
 
 // ---------------------------
