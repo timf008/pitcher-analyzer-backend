@@ -2,6 +2,9 @@
 
 library(dplyr)
 library(jsonlite)
+library(stringr)
+library(stringi)
+library(janitor)
 
 args <- commandArgs(trailingOnly = TRUE)
 season <- args[1]
@@ -11,20 +14,31 @@ file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 df <- read.csv(file_path, stringsAsFactors = FALSE)
 
 # ============================================================
-# Normalize column names (same pattern as batting leaders)
+# Normalize column names safely
 # ============================================================
-clean_names <- names(df) |>
-  (\(x) gsub("%", "pct", x))() |>
-  (\(x) gsub("/", "_", x))() |>
-  (\(x) gsub("\\.", "", x))() |>
-  (\(x) gsub(" ", "_", x))()
+df <- df %>% clean_names()
 
-# Fix duplicates created by cleaning
-names(df) <- make.unique(clean_names, sep = "_")
+names(df) <- names(df) |>
+  str_replace_all("%", "pct") |>
+  str_replace_all("/", "_") |>
+  str_replace_all("\\.", "") |>
+  str_replace_all(" ", "_")
+
+names(df) <- make.unique(names(df), sep = "_")
+
+# ============================================================
+# Detect SO_BB column (SO/BB ratio)
+# ============================================================
+ratio_col <- names(df)[str_detect(names(df), regex("^so_?bb$", ignore_case = TRUE))]
+
+if (length(ratio_col) == 1) {
+    names(df)[names(df) == ratio_col] <- "SO_BB"
+} else {
+    stop("Could not identify SO/BB column after cleaning.")
+}
 
 # ============================================================
 # Compute K%, BB%, K/BB
-# Your CSV already has SO, BB, BF, SO_BB, ERA, WHIP
 # ============================================================
 df <- df %>%
   mutate(
@@ -36,4 +50,5 @@ df <- df %>%
   )
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
+
 
