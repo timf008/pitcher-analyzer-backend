@@ -13,11 +13,14 @@ df <- read.csv(file_path, stringsAsFactors = FALSE)
 # ============================================================
 # Normalize column names (same pattern as batting leaders)
 # ============================================================
-names(df) <- names(df) |>
+clean_names <- names(df) |>
   (\(x) gsub("%", "pct", x))() |>
   (\(x) gsub("/", "_", x))() |>
   (\(x) gsub("\\.", "", x))() |>
   (\(x) gsub(" ", "_", x))()
+
+# Fix duplicates created by cleaning
+names(df) <- make.unique(clean_names, sep = "_")
 
 # ============================================================
 # Compute K%, BB%, K/BB
@@ -33,3 +36,4 @@ df <- df %>%
   )
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
+
