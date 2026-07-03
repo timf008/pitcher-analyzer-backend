@@ -80,6 +80,62 @@ app.get("/api/pitchers", async (req, res) => {
     }
 });
 
+// ---------------------------
+// Rscript wrapper for leaders / compare / trend
+// ---------------------------
+const { spawn } = require("child_process");
+
+function runRScript(scriptName, args = []) {
+    return new Promise((resolve, reject) => {
+        const child = spawn("Rscript", [scriptName, ...args], {
+            cwd: __dirname
+        });
+
+        let output = "";
+        let errorOutput = "";
+
+        child.stdout.on("data", (data) => {
+            output += data.toString();
+        });
+
+        child.stderr.on("data", (data) => {
+            errorOutput += data.toString();
+        });
+
+        child.on("close", (code) => {
+            if (code !== 0) {
+                return reject(new Error(errorOutput));
+            }
+            resolve(output);
+        });
+    });
+}
+
+
+// --------------------------------------
+// API: Pitching Leaders Button
+// --------------------------------------
+app.get("/api/pitching/leaders", async (req, res) => {
+    try {
+        const season = req.query.season;
+
+        if (!season) {
+            return res.status(400).json({ error: "Season required" });
+        }
+
+        // leaders.r is your pitching version
+        const result = await runRScript("leaders.r", [season]);
+        const data = JSON.parse(result);
+
+        res.json(data);
+
+    } catch (err) {
+        console.error("Pitching Leaders API error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+
 // --------------------------------------
 // API: Last Updated timestamp for CSV
 // --------------------------------------
