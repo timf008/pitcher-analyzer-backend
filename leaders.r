@@ -4,7 +4,6 @@ library(dplyr)
 library(jsonlite)
 library(stringr)
 library(stringi)
-library(janitor)
 
 args <- commandArgs(trailingOnly = TRUE)
 season <- args[1]
@@ -14,16 +13,15 @@ file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 df <- read.csv(file_path, stringsAsFactors = FALSE)
 
 # ============================================================
-# Normalize column names safely
+# Normalize column names safely (NO janitor)
 # ============================================================
-df <- df %>% clean_names()
-
 names(df) <- names(df) |>
   str_replace_all("%", "pct") |>
   str_replace_all("/", "_") |>
   str_replace_all("\\.", "") |>
   str_replace_all(" ", "_")
 
+# Fix duplicates created by cleaning
 names(df) <- make.unique(names(df), sep = "_")
 
 # ============================================================
