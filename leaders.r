@@ -14,10 +14,10 @@ df <- read.csv(file_path, stringsAsFactors = FALSE)
 # Normalize column names (same pattern as batting leaders)
 # ============================================================
 names(df) <- names(df) |>
-  gsub("%", "pct", .) |>
-  gsub("/", "_", .) |>
-  gsub("\\.", "", .) |>
-  gsub(" ", "_", .)
+  (\(x) gsub("%", "pct", x))() |>
+  (\(x) gsub("/", "_", x))() |>
+  (\(x) gsub("\\.", "", x))() |>
+  (\(x) gsub(" ", "_", x))()
 
 # ============================================================
 # Compute K%, BB%, K/BB
