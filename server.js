@@ -9,11 +9,18 @@ const app = express();
 // ---------------------------
 // GLOBAL CORS (must be first)
 // ---------------------------
-app.use(cors());
-app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    next();
-});
+app.use(cors({
+    origin: "*",
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"]
+}));
+
+// Remove your manual header middleware — not needed
+// app.use((req, res, next) => {
+//     res.setHeader("Access-Control-Allow-Origin", "*");
+//     next();
+// });
+
 
 // ---------------------------
 // Name Normalization (Latin accents → ASCII)
