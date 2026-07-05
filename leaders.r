@@ -25,6 +25,45 @@ names(df) <- names(df) |>
 names(df) <- make.unique(names(df), sep = "_")
 
 # ============================================================
+# UTF‑8 SAFE Name Normalization (for matching only)
+# ============================================================
+normalize_name <- function(x) {
+
+    # Remove accents ONLY for matching (keeps base letters intact)
+    x <- stringi::stri_trans_general(x, "NFD; [:Nonspacing Mark:] Remove; NFC")
+
+    x <- gsub("[,*#†+]", "", x)
+    x <- gsub("\\.", "", x)
+    x <- gsub("\\s+", " ", x)
+    x <- trimws(x)
+
+    if (grepl(",", x)) {
+        parts <- unlist(strsplit(x, ","))
+        last  <- trimws(parts[1])
+        first <- trimws(parts[2])
+        return(toupper(paste(first, last)))
+    }
+
+    parts <- unlist(strsplit(x, " "))
+    if (length(parts) == 2) {
+        first <- parts[1]
+        last  <- parts[2]
+        return(toupper(paste(first, last)))
+    }
+
+    return(toupper(x))
+}
+
+# ============================================================
+# Add BOTH name fields
+# ============================================================
+df <- df %>%
+  mutate(
+    PlayerDisplay = player_name,                 # KEEP original UTF‑8 (Sánchez)
+    PlayerClean   = normalize_name(player_name)  # For matching only
+  )
+
+# ============================================================
 # Detect SO_BB column (SO/BB ratio)
 # ============================================================
 ratio_col <- names(df)[str_detect(names(df), regex("^so_?bb$", ignore_case = TRUE))]
@@ -47,6 +86,7 @@ df <- df %>%
     WHIP  = round(WHIP, 3)
   )
 
+# ============================================================
+# Output JSON (UTF‑8 SAFE)
+# ============================================================
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
-
-
