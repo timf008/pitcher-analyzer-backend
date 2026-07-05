@@ -4,6 +4,7 @@ library(dplyr)
 library(jsonlite)
 library(stringr)
 library(stringi)
+library(readr)   # <-- new
 
 args <- commandArgs(trailingOnly = TRUE)
 season <- args[1]
@@ -11,23 +12,12 @@ season <- args[1]
 file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 
 # ============================================================
-# Read raw file safely (no parsing yet)
+# Read CSV robustly with readr (handles encoding + parsing)
 # ============================================================
-raw <- readLines(file_path, warn = FALSE)
-
-# Remove BOM if present
-raw <- sub("\ufeff", "", raw)
-
-# Fix malformed quotes (Stathead sometimes emits broken CSV)
-raw <- gsub('""', '"', raw)
-
-# ============================================================
-# Parse using read.csv(text=...) which bypasses fileEncoding issues
-# ============================================================
-df <- read.csv(
-  text = raw,
-  stringsAsFactors = FALSE,
-  check.names = FALSE
+df <- read_csv(
+  file_path,
+  locale = locale(encoding = "UTF-8"),
+  show_col_types = FALSE
 )
 
 # ============================================================
@@ -68,5 +58,6 @@ df <- df %>%
 # Output JSON as UTF-8
 # ============================================================
 cat(enc2utf8(toJSON(df, pretty = FALSE, auto_unbox = TRUE)))
+
 
 
