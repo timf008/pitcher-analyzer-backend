@@ -4,21 +4,13 @@ library(dplyr)
 library(jsonlite)
 library(stringr)
 library(stringi)
-library(readr)   # <-- new
 
 args <- commandArgs(trailingOnly = TRUE)
 season <- args[1]
 
 file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 
-# ============================================================
-# Read CSV robustly with readr (handles encoding + parsing)
-# ============================================================
-df <- read_csv(
-  file_path,
-  locale = locale(encoding = "UTF-8"),
-  show_col_types = FALSE
-)
+df <- read.csv(file_path, stringsAsFactors = FALSE)
 
 # ============================================================
 # Normalize column names safely (NO janitor)
@@ -29,6 +21,7 @@ names(df) <- names(df) |>
   str_replace_all("\\.", "") |>
   str_replace_all(" ", "_")
 
+# Fix duplicates created by cleaning
 names(df) <- make.unique(names(df), sep = "_")
 
 # ============================================================
@@ -54,10 +47,4 @@ df <- df %>%
     WHIP  = round(WHIP, 3)
   )
 
-# ============================================================
-# Output JSON as UTF-8
-# ============================================================
-cat(enc2utf8(toJSON(df, pretty = FALSE, auto_unbox = TRUE)))
-
-
-
+cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
