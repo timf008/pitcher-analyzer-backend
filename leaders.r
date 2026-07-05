@@ -10,7 +10,8 @@ season <- args[1]
 
 file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 
-df <- read.csv(file_path, stringsAsFactors = FALSE)
+df <- read.csv(file_path, stringsAsFactors = FALSE, fileEncoding = "UTF-8")
+
 
 # ============================================================
 # Normalize column names safely (NO janitor)
