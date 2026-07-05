@@ -11,23 +11,23 @@ season <- args[1]
 file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 
 # ============================================================
-# Detect encoding and read CSV safely
+# Read raw file safely (no parsing yet)
 # ============================================================
-# Read a chunk of the file as raw text
-raw_lines <- readLines(file_path, n = 100, warn = FALSE)
+raw <- readLines(file_path, warn = FALSE)
 
-enc_guess <- stri_enc_detect(raw_lines)[[1]]$Encoding[1]
+# Remove BOM if present
+raw <- sub("\ufeff", "", raw)
 
-# Fallback if detection fails
-if (is.na(enc_guess)) {
-  enc_guess <- "UTF-8"
-}
+# Fix malformed quotes (Stathead sometimes emits broken CSV)
+raw <- gsub('""', '"', raw)
 
-# Read using detected encoding
+# ============================================================
+# Parse using read.csv(text=...) which bypasses fileEncoding issues
+# ============================================================
 df <- read.csv(
-  file_path,
+  text = raw,
   stringsAsFactors = FALSE,
-  fileEncoding = enc_guess
+  check.names = FALSE
 )
 
 # ============================================================
@@ -39,7 +39,6 @@ names(df) <- names(df) |>
   str_replace_all("\\.", "") |>
   str_replace_all(" ", "_")
 
-# Fix duplicates created by cleaning
 names(df) <- make.unique(names(df), sep = "_")
 
 # ============================================================
@@ -66,8 +65,8 @@ df <- df %>%
   )
 
 # ============================================================
-# Emit JSON as UTF-8 so accents survive
+# Output JSON as UTF-8
 # ============================================================
-json_out <- toJSON(df, pretty = FALSE, auto_unbox = TRUE)
-cat(enc2utf8(json_out))
+cat(enc2utf8(toJSON(df, pretty = FALSE, auto_unbox = TRUE)))
+
 
