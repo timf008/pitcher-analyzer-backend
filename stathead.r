@@ -15,9 +15,7 @@ season <- args[2]
 # Converts ALL formats → "FIRST LAST"
 # ============================================================
 normalize_name <- function(x) {
-    # Remove accents reliably
     x <- stri_trans_general(x, "Latin-ASCII")
-
     x <- gsub("[,*#†+]", "", x)
     x <- gsub("\\.", "", x)
     x <- gsub("\\s+", " ", x)
@@ -93,6 +91,84 @@ so_col <- so_cols[1]
 bb_col <- bb_cols[1]
 
 # ============================================================
+# Bulletproof K% and BB%
+# ============================================================
+if ("BF" %in% names(df)) {
+    df$Kpct <- (df[[so_col]] / df$BF) * 100
+    df$BBpct <- (df[[bb_col]] / df$BF) * 100
+
+} else if (all(c("IP", "H", "BB", "HBP") %in% names(df))) {
+    est_BF <- (df$IP * 3) + df$H + df$BB + df$HBP
+    df$Kpct <- (df[[so_col]] / est_BF) * 100
+    df$BBpct <- (df[[bb_col]] / est_BF) * 100
+
+} else if (all(c("SO9", "BB9") %in% names(df))) {
+    df$Kpct <- (df$SO9 / 27) * 100
+    df$BBpct <- (df$BB9 / 27) * 100
+
+} else {
+    df$Kpct <- NA
+    df$BBpct <- NA
+}
+
+# ============================================================
+# Compute K/BB if missing
+# ============================================================
+if (!"SO_BB" %in% names(df)) {
+    df$SO_BB <- df[[so_col]] / df[[bb_col]]
+}
+
+# ============================================================
+# Percentile helper
+# ============================================================
+percentile <- function(x, higher_is_better = TRUE) {
+    valid <- !is.na(x)
+    if (higher_is_better) {
+        return(rank(x, na.last = "keep") / sum(valid) * 100)
+    } else {
+        return(rank(-x, na.last = "keep") / sum(valid) * 100)
+    }
+}
+
+# ============================================================
+# Backend Overall Score (same formula as frontend)
+# ============================================================
+score_era <- function(era) {
+    pmin(pmax(10 * (5.00 - era) / (5.00 - 2.00), 0), 10)
+}
+
+score_whip <- function(whip) {
+    pmin(pmax(10 * (1.40 - whip) / (1.40 - 0.90), 0), 10)
+}
+
+score_kpct <- function(kpct) {
+    pmin(pmax(10 * (kpct - 15) / (35 - 15), 0), 10)
+}
+
+score_bbpct <- function(bbpct) {
+    pmin(pmax(10 * (10 - bbpct) / (10 - 3), 0), 10)
+}
+
+score_kbb <- function(kbb) {
+    pmin(pmax(10 * (kbb - 1.5) / (6.0 - 1.5), 0), 10)
+}
+
+compute_overall <- function(era, whip, kpct, bbpct, kbb) {
+    score_era(era)  * 0.25 +
+    score_whip(whip) * 0.25 +
+    score_kpct(kpct) * 0.1875 +
+    score_bbpct(bbpct) * 0.125 +
+    score_kbb(kbb)   * 0.1875
+}
+
+df$OverallScore <- compute_overall(df$ERA, df$WHIP, df$Kpct, df$BBpct, df$SO_BB)
+
+# ============================================================
+# Compute Overall Percentile
+# ============================================================
+df$Overall_pct <- percentile(df$OverallScore, higher_is_better = TRUE)
+
+# ============================================================
 # Filter for player + season
 # ============================================================
 p <- df %>%
@@ -107,38 +183,6 @@ if (nrow(p) == 0) {
 }
 
 # ============================================================
-# Bulletproof K% and BB%
-# ============================================================
-if ("BF" %in% names(p) && !is.na(p$BF)) {
-
-    p$Kpct <- (p[[so_col]] / p$BF) * 100
-    p$BBpct <- (p[[bb_col]] / p$BF) * 100
-
-} else if (all(c("IP", "H", "BB", "HBP") %in% names(p))) {
-
-    est_BF <- (p$IP * 3) + p$H + p$BB + p$HBP
-
-    p$Kpct <- (p[[so_col]] / est_BF) * 100
-    p$BBpct <- (p[[bb_col]] / est_BF) * 100
-
-} else if (all(c("SO9", "BB9") %in% names(p))) {
-
-    p$Kpct <- (p$SO9 / 27) * 100
-    p$BBpct <- (p$BB9 / 27) * 100
-
-} else {
-    p$Kpct <- NA
-    p$BBpct <- NA
-}
-
-# ============================================================
-# Compute K/BB if missing
-# ============================================================
-if (!"SO_BB" %in% names(p)) {
-    p$SO_BB <- p[[so_col]] / p[[bb_col]]
-}
-
-# ============================================================
 # Build JSON output
 # ============================================================
 result <- p %>%
@@ -148,6 +192,10 @@ result <- p %>%
     Kpct = as.numeric(Kpct),
     BBpct = as.numeric(BBpct),
     KBB = as.numeric(SO_BB),
+
+    # Overall percentile only
+    Overall_pct = as.numeric(Overall_pct),
+
     IP = as.numeric(IP),
     HR9 = as.numeric(HR9),
     FIP = as.numeric(FIP),
