@@ -100,9 +100,12 @@ df <- df %>%
     bbpctScore = scoreBBpct(BBpct),
     kbbScore   = scoreKBB(KBB),
 
-    # Weighted overall score
-    overall = computeWeightedOverallPitcher(
-      eraScore, whipScore, kpctScore, bbpctScore, kbbScore
+    # Weighted overall score (rounded to .1)
+    overall = round(
+      computeWeightedOverallPitcher(
+        eraScore, whipScore, kpctScore, bbpctScore, kbbScore
+      ),
+      1
     ),
 
     # XP (sabermetric production score)
@@ -115,9 +118,10 @@ df <- df %>%
           1000
         )
   ) %>%
-  filter(GS > 5) %>%           # ⭐ NEW: match JS filter
-  arrange(desc(overall)) %>%   # sort by overall score
-  slice(1:20)                  # top 20 leaders
+  filter(GS > 5) %>%
+  arrange(desc(overall)) %>%
+  slice(1:20)
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
+
 
