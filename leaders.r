@@ -36,15 +36,86 @@ if (length(ratio_col) == 1) {
 }
 
 # ============================================================
-# Compute K%, BB%, K/BB
+# Clamp helper
+# ============================================================
+clamp <- function(x, min_val = 0, max_val = 10) {
+  pmax(min_val, pmin(max_val, x))
+}
+
+# ============================================================
+# Scoring functions (Pitcher 5‑metric model)
+# ============================================================
+scoreERA <- function(era) {
+  score <- 10 * (5.00 - era) / (5.00 - 2.00)
+  clamp(score)
+}
+
+scoreWHIP <- function(whip) {
+  score <- 10 * (1.40 - whip) / (1.40 - 0.90)
+  clamp(score)
+}
+
+scoreKpct <- function(kpct) {
+  score <- 10 * (kpct - 15) / (35 - 15)
+  clamp(score)
+}
+
+scoreBBpct <- function(bbpct) {
+  score <- 10 * (10 - bbpct) / (10 - 3)
+  clamp(score)
+}
+
+scoreKBB <- function(kbb) {
+  score <- 10 * (kbb - 1.5) / (6.0 - 1.5)
+  clamp(score)
+}
+
+# ============================================================
+# Weighted Overall Score (Pitcher model)
+# ============================================================
+computeWeightedOverallPitcher <- function(eraScore, whipScore, kpctScore, bbpctScore, kbbScore) {
+  (eraScore  * 0.25 +
+   whipScore * 0.25 +
+   kpctScore * 0.1875 +
+   bbpctScore* 0.125 +
+   kbbScore  * 0.1875)
+}
+
+# ============================================================
+# Compute K%, BB%, K/BB, Scores, Overall, XP
 # ============================================================
 df <- df %>%
   mutate(
+    # Derived pitcher stats
     Kpct  = round((SO / BF) * 100, 1),
     BBpct = round((BB / BF) * 100, 1),
     KBB   = round(SO_BB, 2),
     ERA   = round(ERA, 2),
-    WHIP  = round(WHIP, 3)
-  )
+    WHIP  = round(WHIP, 3),
+
+    # Normalized scores (0–10)
+    eraScore   = scoreERA(ERA),
+    whipScore  = scoreWHIP(WHIP),
+    kpctScore  = scoreKpct(Kpct),
+    bbpctScore = scoreBBpct(BBpct),
+    kbbScore   = scoreKBB(KBB),
+
+    # Weighted overall score
+    overall = computeWeightedOverallPitcher(
+      eraScore, whipScore, kpctScore, bbpctScore, kbbScore
+    ),
+
+    # XP (sabermetric production score)
+    XP = round(
+          (Kpct * 2) +
+          (KBB  * 10) -
+          (ERA  * 3) -
+          (WHIP * 5) -
+          (BBpct * 2) +
+          1000
+        )
+  ) %>%
+  arrange(desc(overall)) %>%   # sort by overall score
+  slice(1:20)                  # top 20 leaders
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
