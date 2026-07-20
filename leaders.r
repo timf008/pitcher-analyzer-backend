@@ -115,7 +115,9 @@ df <- df %>%
           1000
         )
   ) %>%
+  filter(GS > 5) %>%           # ⭐ NEW: match JS filter
   arrange(desc(overall)) %>%   # sort by overall score
   slice(1:20)                  # top 20 leaders
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
+
