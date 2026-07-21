@@ -90,6 +90,7 @@ bb_cols <- names(df)[str_detect(names(df), "^BB$")]
 so_col <- so_cols[1]
 bb_col <- bb_cols[1]
 
+team_col <- get_col("^Team$")   # ⭐ NEW
 # ============================================================
 # Bulletproof K% and BB%
 # ============================================================
@@ -193,8 +194,9 @@ result <- p %>%
     BBpct = as.numeric(BBpct),
     KBB = as.numeric(SO_BB),
 
-    # Overall percentile only
     Overall_pct = as.numeric(Overall_pct),
+
+    Team = if (!is.na(team_col)) as.character(.data[[team_col]]) else NA_character_,   # ⭐ NEW
 
     IP = as.numeric(IP),
     HR9 = as.numeric(HR9),
@@ -203,5 +205,6 @@ result <- p %>%
     L = as.numeric(L),
     GS = as.numeric(GS)
   )
+
 
 cat(toJSON(result, pretty = TRUE, auto_unbox = TRUE))
