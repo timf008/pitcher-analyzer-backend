@@ -84,6 +84,12 @@ df$Season <- as.numeric(gsub("[^0-9]", "", as.character(df$Season)))
 # ============================================================
 # Detect SO and BB columns
 # ============================================================
+get_col <- function(pattern) {
+    cols <- names(df)[str_detect(names(df), pattern)]
+    if (length(cols) == 0) return(NA_character_)
+    cols[1]
+}
+
 so_cols <- names(df)[str_detect(names(df), "^SO")]
 bb_cols <- names(df)[str_detect(names(df), "^BB$")]
 
