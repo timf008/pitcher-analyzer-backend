@@ -120,7 +120,7 @@ df <- df %>%
   ) %>%
   filter(GS > 5) %>%
   arrange(desc(overall)) %>%
-  slice(1:20)
+  slice(1:50)
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
 
