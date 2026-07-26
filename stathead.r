@@ -176,19 +176,20 @@ df$OverallScore <- compute_overall(df$ERA, df$WHIP, df$Kpct, df$BBpct, df$SO_BB)
 df$Overall_pct <- percentile(df$OverallScore, higher_is_better = TRUE)
 
 # ============================================================
-# Pitcher XP Score (same formula as frontend)
+# Pitcher XP Score (updated formula)
 # ============================================================
 compute_pitcher_xp <- function(kpct, kbb, era, whip, bbpct) {
     xp <- (kpct * 2) +
           (kbb * 10) -
-          (era * 3) -
-          (whip * 5) -
-          (bbpct * 2)
+          (era * 15) -
+          (whip * 40) -
+          (bbpct * 10)
 
     return(xp + 1000)  # Pitchers get +1000 baseline
 }
 
 df$XP <- compute_pitcher_xp(df$Kpct, df$SO_BB, df$ERA, df$WHIP, df$BBpct)
+
 
 
 # ============================================================
