@@ -112,9 +112,9 @@ df <- df %>%
     XP = round(
           (Kpct * 2) +
           (KBB  * 10) -
-          (ERA  * 3) -
-          (WHIP * 5) -
-          (BBpct * 2) +
+          (ERA  * 15) -
+          (WHIP * 40) -
+          (BBpct * 10) +
           1000
         )
   ) %>%
@@ -123,5 +123,6 @@ df <- df %>%
   slice(1:50)
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
+
 
 
