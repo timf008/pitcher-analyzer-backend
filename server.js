@@ -144,6 +144,25 @@ app.get("/api/pitching/leaders", async (req, res) => {
 
 
 // --------------------------------------
+// API: League Averages (XP + Overall)
+// --------------------------------------
+app.get("/api/pitching/averages", async (req, res) => {
+    try {
+        const season = req.query.season;
+        if (!season) return res.status(400).json({ error: "Season required" });
+
+        const result = await runRScript("averages.r", [season]);
+        const data = JSON.parse(result);
+
+        res.json(data);
+    } catch (err) {
+        console.error("Pitching averages API error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+
+// --------------------------------------
 // API: Last Updated timestamp for CSV
 // --------------------------------------
 app.get("/api/last-updated/pitchers/:season", (req, res) => {
