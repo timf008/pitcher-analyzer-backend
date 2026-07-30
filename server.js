@@ -164,20 +164,26 @@ app.get("/api/pitching/averages", async (req, res) => {
 // --------------------------------------
 // API: Player of the Day
 // --------------------------------------
+let cachedPlayerOfDay = null;
+let cachedDate = null;
+
 app.get("/api/player-of-day", async (req, res) => {
-    try {
-        const season = req.query.season;
-        if (!season) return res.status(400).json({ error: "Season required" });
+    const today = new Date().toISOString().slice(0, 10);
 
-        const result = await runRScript("player_of_day.r", [season]);
-        const data = JSON.parse(result);
-
-        res.json(data);
-    } catch (err) {
-        console.error("Player of Day API error:", err);
-        res.status(500).json({ error: "Server error" });
+    if (cachedDate === today && cachedPlayerOfDay) {
+        return res.json(cachedPlayerOfDay);
     }
+
+    const season = req.query.season;
+    const result = await runRScript("player_of_day.r", [season]);
+    const player = JSON.parse(result);
+
+    cachedPlayerOfDay = player;
+    cachedDate = today;
+
+    res.json(player);
 });
+
 
 
 
