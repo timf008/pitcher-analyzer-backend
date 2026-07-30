@@ -98,6 +98,6 @@ df <- df %>%
 # Pick a random player from the top 50
 # ============================================================
 top50 <- df %>% slice(1:50)
-player <- top50 %>% slice_sample(n = 1)
+player <- top50 %>% slice_sample(n = 1) %>% as.list()
 
 cat(toJSON(player, pretty = FALSE, auto_unbox = TRUE))
