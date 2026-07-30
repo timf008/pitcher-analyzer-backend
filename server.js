@@ -161,6 +161,25 @@ app.get("/api/pitching/averages", async (req, res) => {
     }
 });
 
+// --------------------------------------
+// API: Player of the Day
+// --------------------------------------
+app.get("/api/player-of-day", async (req, res) => {
+    try {
+        const season = req.query.season;
+        if (!season) return res.status(400).json({ error: "Season required" });
+
+        const result = await runRScript("player_of_day.r", [season]);
+        const data = JSON.parse(result);
+
+        res.json(data);
+    } catch (err) {
+        console.error("Player of Day API error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+
 
 // --------------------------------------
 // API: Last Updated timestamp for CSV
