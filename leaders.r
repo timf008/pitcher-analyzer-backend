@@ -82,7 +82,7 @@ computeWeightedOverallPitcher <- function(eraScore, whipScore, kpctScore, bbpctS
 }
 
 # ============================================================
-# Compute K%, BB%, K/BB, Scores, Overall, XP
+# Compute K%, BB%, K/BB, Scores, Overall, XP, Identity, Tier
 # ============================================================
 df <- df %>%
   mutate(
@@ -116,13 +116,32 @@ df <- df %>%
           (WHIP * 40) -
           (BBpct * 10) +
           1000
-        )
+        ),
+
+    # ============================================================
+    # Fantasy Identity (Pitchers)
+    # ============================================================
+    identity = case_when(
+      XP >= 980 & overall >= 8.0 ~ "Breakout",
+      XP <= 960 & overall >= 7.0 ~ "Sleeper",
+      XP >= 930 & overall <= 6.5 ~ "Overperformer",
+      XP >= 900 & overall >= 4.5 ~ "Consistent",
+      TRUE ~ "Neutral"
+    ),
+
+    # ============================================================
+    # Draft Tiers (Pure Analyzer Style)
+    # ============================================================
+    tier = case_when(
+      overall >= 9.0 ~ "Tier 1",
+      overall >= 8.0 ~ "Tier 2",
+      overall >= 7.0 ~ "Tier 3",
+      overall >= 6.0 ~ "Tier 4",
+      TRUE ~ "Tier 5"
+    )
   ) %>%
   filter(GS > 5) %>%
   arrange(desc(overall)) %>%
   slice(1:50)
 
 cat(toJSON(df, pretty = FALSE, auto_unbox = TRUE))
-
-
-
