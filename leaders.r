@@ -119,15 +119,41 @@ df <- df %>%
         ),
 
     # ============================================================
-    # Fantasy Identity (Pitchers)
-    # ============================================================
-    identity = case_when(
-      XP >= 980 & overall >= 8.0 ~ "Breakout",
-      XP <= 960 & overall >= 7.0 ~ "Sleeper",
-      XP >= 930 & overall <= 6.5 ~ "Overperformer",
-      XP >= 900 & overall >= 4.5 ~ "Consistent",
-      TRUE ~ "Neutral"
-    ),
+# Fantasy Identity (Pitchers)
+# Mirrors JS xpTierPitcher + applyPitcherSkillModifier
+# ============================================================
+
+base_identity = case_when(
+  XP >= 1000 ~ "breakout",
+  XP >= 950  ~ "overperformer",
+  XP >= 900  ~ "sleeper",
+  XP >= 880  ~ "consistent",
+  TRUE       ~ "neutral"
+),
+
+identity_index = case_when(
+  base_identity == "neutral"       ~ 1,
+  base_identity == "consistent"    ~ 2,
+  base_identity == "sleeper"       ~ 3,
+  base_identity == "overperformer" ~ 4,
+  base_identity == "breakout"      ~ 5
+),
+
+# Skill modifier
+identity_index = case_when(
+  overall >= 7.0 ~ pmin(identity_index + 1, 5),
+  overall <= 5.5 ~ pmax(identity_index - 1, 1),
+  TRUE           ~ identity_index
+),
+
+identity = case_when(
+  identity_index == 5 ~ "Breakout",
+  identity_index == 4 ~ "Overperformer",
+  identity_index == 3 ~ "Sleeper",
+  identity_index == 2 ~ "Consistent",
+  TRUE                ~ "Neutral"
+),
+
 
     # ============================================================
     # Draft Tiers (Pure Analyzer Style)
