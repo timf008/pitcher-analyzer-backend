@@ -29,6 +29,7 @@ normalize_name <- function(x) {
     }
 
     parts <- unlist(strsplit(x, " "))
+
     if (length(parts) == 2) {
         first <- parts[1]
         last  <- parts[2]
@@ -41,55 +42,98 @@ normalize_name <- function(x) {
 player_name_clean <- normalize_name(player_name)
 
 # ============================================================
-# Load CSV (ABSOLUTE PATH FIX)
+# Load CSV
 # ============================================================
-file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
+file_path <- file.path(
+    getwd(),
+    sprintf("stathead_pitching_%s.csv", season)
+)
 
 if (!file.exists(file_path)) {
-    cat(toJSON(list(error = paste("CSV not found:", file_path)), auto_unbox = TRUE))
+    cat(
+        toJSON(
+            list(
+                error = paste(
+                    "CSV not found:",
+                    file_path
+                )
+            ),
+            auto_unbox = TRUE
+        )
+    )
+
     quit(status = 1)
 }
 
-df <- read_csv(file_path, show_col_types = FALSE)
+df <- read_csv(
+    file_path,
+    show_col_types = FALSE
+)
 
 # ============================================================
 # Normalize column names
 # ============================================================
 names(df) <- names(df) |>
-  str_replace_all("%", "pct") |>
-  str_replace_all("/", "_") |>
-  str_replace_all("\\.", "") |>
-  str_replace_all(" ", "_")
+    str_replace_all("%", "pct") |>
+    str_replace_all("/", "_") |>
+    str_replace_all("\\.", "") |>
+    str_replace_all(" ", "_")
 
 # ============================================================
 # Detect Player column
 # ============================================================
 name_col <- names(df)[
-    str_detect(names(df), regex("^Player$", ignore_case = TRUE))
+    str_detect(
+        names(df),
+        regex(
+            "^Player$",
+            ignore_case = TRUE
+        )
+    )
 ][1]
 
 if (is.na(name_col)) {
-    cat(toJSON(list(error = "No Player column found"), auto_unbox = TRUE))
+    cat(
+        toJSON(
+            list(
+                error = "No Player column found"
+            ),
+            auto_unbox = TRUE
+        )
+    )
+
     quit(status = 1)
 }
 
 # ============================================================
-# Normalize CSV names (UTF-8 SAFE)
+# Normalize CSV names
 # ============================================================
-df$NameClean <- sapply(df[[name_col]], normalize_name)
+df$NameClean <- sapply(
+    df[[name_col]],
+    normalize_name
+)
 
 # ============================================================
 # Clean Season column
 # ============================================================
 df$Season <- as.numeric(
-    gsub("[^0-9]", "", as.character(df$Season))
+    gsub(
+        "[^0-9]",
+        "",
+        as.character(df$Season)
+    )
 )
 
 # ============================================================
-# Detect SO and BB columns
+# Safe column helper
 # ============================================================
 get_col <- function(pattern) {
-    cols <- names(df)[str_detect(names(df), pattern)]
+    cols <- names(df)[
+        str_detect(
+            names(df),
+            pattern
+        )
+    ]
 
     if (length(cols) == 0) {
         return(NA_character_)
@@ -98,63 +142,145 @@ get_col <- function(pattern) {
     cols[1]
 }
 
-so_cols <- names(df)[str_detect(names(df), "^SO")]
-bb_cols <- names(df)[str_detect(names(df), "^BB$")]
-
-so_col <- so_cols[1]
-bb_col <- bb_cols[1]
-
-team_col <- get_col("^Team$")
-
 # ============================================================
-# Bulletproof K% and BB%
+# Detect SO / BB / Team columns
+#
+# Stathead may create duplicate strikeout columns such as:
+# SO3, SO25, SO_pitch, etc.
+#
+# Prefer SO_pitch when available because it is explicitly
+# the pitching strikeout total.
 # ============================================================
-if ("BF" %in% names(df)) {
 
-    df$Kpct <- (df[[so_col]] / df$BF) * 100
-    df$BBpct <- (df[[bb_col]] / df$BF) * 100
+if ("SO_pitch" %in% names(df)) {
 
-} else if (all(c("IP", "H", "BB", "HBP") %in% names(df))) {
-
-    est_BF <- (df$IP * 3) + df$H + df$BB + df$HBP
-
-    df$Kpct <- (df[[so_col]] / est_BF) * 100
-    df$BBpct <- (df[[bb_col]] / est_BF) * 100
-
-} else if (all(c("SO9", "BB9") %in% names(df))) {
-
-    df$Kpct <- (df$SO9 / 27) * 100
-    df$BBpct <- (df$BB9 / 27) * 100
+    so_col <- "SO_pitch"
 
 } else {
 
-    df$Kpct <- NA
-    df$BBpct <- NA
+    so_candidates <- names(df)[
+        str_detect(
+            names(df),
+            "^SO[0-9]*$"
+        )
+    ]
+
+    if (length(so_candidates) > 0) {
+        so_col <- so_candidates[1]
+    } else {
+        so_col <- NA_character_
+    }
+}
+
+bb_col <- get_col("^BB$")
+team_col <- get_col("^Team$")
+
+if (is.na(so_col) || is.na(bb_col)) {
+    cat(
+        toJSON(
+            list(
+                error = "SO or BB column not found"
+            ),
+            auto_unbox = TRUE
+        )
+    )
+
+    quit(status = 1)
+}
+
+# ============================================================
+# K% and BB%
+# ============================================================
+if ("BF" %in% names(df)) {
+
+    df$Kpct <-
+        (df[[so_col]] / df$BF) * 100
+
+    df$BBpct <-
+        (df[[bb_col]] / df$BF) * 100
+
+} else if (
+    all(
+        c(
+            "IP",
+            "H",
+            "BB",
+            "HBP"
+        ) %in% names(df)
+    )
+) {
+
+    est_BF <-
+        (df$IP * 3) +
+        df$H +
+        df$BB +
+        df$HBP
+
+    df$Kpct <-
+        (df[[so_col]] / est_BF) * 100
+
+    df$BBpct <-
+        (df[[bb_col]] / est_BF) * 100
+
+} else if (
+    all(
+        c(
+            "SO9",
+            "BB9"
+        ) %in% names(df)
+    )
+) {
+
+    df$Kpct <-
+        (df$SO9 / 27) * 100
+
+    df$BBpct <-
+        (df$BB9 / 27) * 100
+
+} else {
+
+    df$Kpct <- NA_real_
+    df$BBpct <- NA_real_
 }
 
 # ============================================================
 # Compute K/BB if missing
 # ============================================================
 if (!"SO_BB" %in% names(df)) {
-    df$SO_BB <- df[[so_col]] / df[[bb_col]]
+
+    df$SO_BB <-
+        df[[so_col]] /
+        df[[bb_col]]
 }
 
 # ============================================================
 # Percentile helper
 # ============================================================
-percentile <- function(x, higher_is_better = TRUE) {
+percentile <- function(
+    x,
+    higher_is_better = TRUE
+) {
 
     valid <- !is.na(x)
 
     if (higher_is_better) {
+
         return(
-            rank(x, na.last = "keep") /
+            rank(
+                x,
+                na.last = "keep"
+            ) /
             sum(valid) *
             100
         )
+
     } else {
+
         return(
-            rank(-x, na.last = "keep") /
+            rank(
+                -x,
+                na.last = "keep"
+            ) /
             sum(valid) *
             100
         )
@@ -165,9 +291,12 @@ percentile <- function(x, higher_is_better = TRUE) {
 # Backend Overall Score
 # ============================================================
 score_era <- function(era) {
+
     pmin(
         pmax(
-            10 * (5.00 - era) / (5.00 - 2.00),
+            10 *
+            (5.00 - era) /
+            (5.00 - 2.00),
             0
         ),
         10
@@ -175,9 +304,12 @@ score_era <- function(era) {
 }
 
 score_whip <- function(whip) {
+
     pmin(
         pmax(
-            10 * (1.40 - whip) / (1.40 - 0.90),
+            10 *
+            (1.40 - whip) /
+            (1.40 - 0.90),
             0
         ),
         10
@@ -185,9 +317,12 @@ score_whip <- function(whip) {
 }
 
 score_kpct <- function(kpct) {
+
     pmin(
         pmax(
-            10 * (kpct - 15) / (35 - 15),
+            10 *
+            (kpct - 15) /
+            (35 - 15),
             0
         ),
         10
@@ -195,9 +330,12 @@ score_kpct <- function(kpct) {
 }
 
 score_bbpct <- function(bbpct) {
+
     pmin(
         pmax(
-            10 * (10 - bbpct) / (10 - 3),
+            10 *
+            (10 - bbpct) /
+            (10 - 3),
             0
         ),
         10
@@ -205,9 +343,12 @@ score_bbpct <- function(bbpct) {
 }
 
 score_kbb <- function(kbb) {
+
     pmin(
         pmax(
-            10 * (kbb - 1.5) / (6.0 - 1.5),
+            10 *
+            (kbb - 1.5) /
+            (6.0 - 1.5),
             0
         ),
         10
@@ -222,11 +363,11 @@ compute_overall <- function(
     kbb
 ) {
 
-    score_era(era)       * 0.25 +
-    score_whip(whip)     * 0.25 +
-    score_kpct(kpct)     * 0.1875 +
-    score_bbpct(bbpct)   * 0.125 +
-    score_kbb(kbb)       * 0.1875
+    score_era(era)      * 0.25 +
+    score_whip(whip)    * 0.25 +
+    score_kpct(kpct)    * 0.1875 +
+    score_bbpct(bbpct)  * 0.125 +
+    score_kbb(kbb)      * 0.1875
 }
 
 df$OverallScore <- compute_overall(
@@ -240,20 +381,27 @@ df$OverallScore <- compute_overall(
 # ============================================================
 # Component Scores
 # ============================================================
-df$ERA_score <- score_era(df$ERA)
-df$WHIP_score <- score_whip(df$WHIP)
-df$Kpct_score <- score_kpct(df$Kpct)
-df$BBpct_score <- score_bbpct(df$BBpct)
-df$KBB_score <- score_kbb(df$SO_BB)
+df$ERA_score <-
+    score_era(df$ERA)
+
+df$WHIP_score <-
+    score_whip(df$WHIP)
+
+df$Kpct_score <-
+    score_kpct(df$Kpct)
+
+df$BBpct_score <-
+    score_bbpct(df$BBpct)
+
+df$KBB_score <-
+    score_kbb(df$SO_BB)
 
 # ============================================================
 # Cross-Sectional Expected Overall
 #
-# Uses ONLY the current season dataset.
-# Each pitcher's profile is compared with the 10 closest
-# complete profiles using the five pitcher component scores.
-#
-# The pitcher himself is excluded from his peer group.
+# Uses the current season population.
+# Each pitcher is compared with the 10 closest
+# complete profiles using the five component scores.
 # ============================================================
 
 profile_cols <- c(
@@ -264,71 +412,124 @@ profile_cols <- c(
     "KBB_score"
 )
 
-valid_profiles <- complete.cases(df[, profile_cols]) &
-                  !is.na(df$OverallScore)
-
-profile_indices <- which(valid_profiles)
-
 # ============================================================
-# Standardize pitcher profiles
+# Convert profile data to a numeric matrix
 # ============================================================
 
-profile_matrix <- scale(
-    as.matrix(df[valid_profiles, profile_cols])
+profile_data <- as.matrix(
+    df[, profile_cols]
 )
 
-# ============================================================
-# Calculate all pairwise distances ONCE
-# ============================================================
-
-distance_matrix <- as.matrix(dist(profile_matrix))
-
-# Prevent each pitcher from selecting himself
-diag(distance_matrix) <- Inf
+storage.mode(profile_data) <- "numeric"
 
 # ============================================================
-# Expected Overall from 10 nearest neighbors
+# Only use completely finite profiles
+#
+# complete.cases() alone does not reject Inf/-Inf.
 # ============================================================
 
-k <- 10
-
-expected_overall_valid <- apply(
-    distance_matrix,
+valid_profiles <- apply(
+    profile_data,
     1,
-    function(d) {
-
-        finite <- which(is.finite(d))
-
-        if (length(finite) == 0) {
-            return(NA_real_)
-        }
-
-        neighbors <- finite[
-            order(d[finite])[
-                1:min(k, length(finite))
-            ]
-        ]
-
-        neighbor_indices <- profile_indices[neighbors]
-
-        mean(
-            df$OverallScore[neighbor_indices],
-            na.rm = TRUE
-        )
+    function(x) {
+        all(is.finite(x))
     }
+) & is.finite(df$OverallScore)
+
+profile_indices <- which(
+    valid_profiles
 )
 
-# Store result back into full dataframe
-df$ExpectedOverall <- NA_real_
+# Need at least two pitchers to create peers
+if (length(profile_indices) < 2) {
 
-df$ExpectedOverall[profile_indices] <-
-    expected_overall_valid
+    df$ExpectedOverall <- NA_real_
+
+} else {
+
+    # ========================================================
+    # Standardize profiles
+    # ========================================================
+
+    profile_matrix <- scale(
+        profile_data[
+            valid_profiles,
+            ,
+            drop = FALSE
+        ]
+    )
+
+    # ========================================================
+    # Calculate all pairwise distances ONCE
+    # ========================================================
+
+    distance_matrix <- as.matrix(
+        dist(profile_matrix)
+    )
+
+    # Prevent each pitcher from selecting himself
+    diag(distance_matrix) <- Inf
+
+    # ========================================================
+    # Expected Overall from 10 nearest neighbors
+    # ========================================================
+
+    k <- 10
+
+    expected_overall_valid <- apply(
+        distance_matrix,
+        1,
+        function(d) {
+
+            finite <- which(
+                is.finite(d)
+            )
+
+            if (length(finite) == 0) {
+                return(NA_real_)
+            }
+
+            neighbors <- finite[
+                order(
+                    d[finite]
+                )[
+                    1:min(
+                        k,
+                        length(finite)
+                    )
+                ]
+            ]
+
+            neighbor_indices <-
+                profile_indices[
+                    neighbors
+                ]
+
+            mean(
+                df$OverallScore[
+                    neighbor_indices
+                ],
+                na.rm = TRUE
+            )
+        }
+    )
+
+    # ========================================================
+    # Store result back into full dataframe
+    # ========================================================
+
+    df$ExpectedOverall <- NA_real_
+
+    df$ExpectedOverall[
+        profile_indices
+    ] <- expected_overall_valid
+}
 
 # ============================================================
 # Overall Divergence
 #
-# Positive = Actual Overall is above comparable-pitcher expectation
-# Negative = Actual Overall is below comparable-pitcher expectation
+# Positive = Actual Overall is above comparable expectation
+# Negative = Actual Overall is below comparable expectation
 # ============================================================
 
 df$OverallDivergence <-
@@ -337,14 +538,12 @@ df$OverallDivergence <-
 
 # ============================================================
 # Overall Divergence Standard Deviation
-# Mirrors Batter Analyzer structure
 # ============================================================
 
-overall_divergence_sd <-
-    sd(
-        df$OverallDivergence,
-        na.rm = TRUE
-    )
+overall_divergence_sd <- sd(
+    df$OverallDivergence,
+    na.rm = TRUE
+)
 
 # ============================================================
 # Compute Overall Percentile
@@ -367,11 +566,12 @@ compute_pitcher_xp <- function(
     bbpct
 ) {
 
-    xp <- (kpct * 2) +
-          (kbb * 10) -
-          (era * 15) -
-          (whip * 40) -
-          (bbpct * 10)
+    xp <-
+        (kpct * 2) +
+        (kbb * 10) -
+        (era * 15) -
+        (whip * 40) -
+        (bbpct * 10)
 
     return(
         xp + 1000
@@ -391,10 +591,10 @@ df$XP <- compute_pitcher_xp(
 # ============================================================
 
 p <- df %>%
-  filter(
-      NameClean == player_name_clean,
-      Season == as.numeric(season)
-  )
+    filter(
+        NameClean == player_name_clean,
+        Season == as.numeric(season)
+    )
 
 if (nrow(p) == 0) {
 
@@ -415,47 +615,92 @@ if (nrow(p) == 0) {
 # ============================================================
 
 result <- p %>%
-  transmute(
+    transmute(
 
-    ERA = as.numeric(ERA),
-    WHIP = as.numeric(WHIP),
-    Kpct = as.numeric(Kpct),
-    BBpct = as.numeric(BBpct),
-    KBB = as.numeric(SO_BB),
+        ERA =
+            as.numeric(ERA),
 
-    ERA_score = as.numeric(ERA_score),
-    WHIP_score = as.numeric(WHIP_score),
-    Kpct_score = as.numeric(Kpct_score),
-    BBpct_score = as.numeric(BBpct_score),
-    KBB_score = as.numeric(KBB_score),
+        WHIP =
+            as.numeric(WHIP),
 
-    Overall = as.numeric(OverallScore),
-    ExpectedOverall = as.numeric(ExpectedOverall),
-    OverallDivergence = as.numeric(OverallDivergence),
-    OverallDivergenceSD = as.numeric(overall_divergence_sd),
+        Kpct =
+            as.numeric(Kpct),
 
-    Overall_pct = as.numeric(Overall_pct),
+        BBpct =
+            as.numeric(BBpct),
 
-    XP = as.numeric(XP),
+        KBB =
+            as.numeric(SO_BB),
 
-    Team = if (!is.na(team_col))
-        as.character(.data[[team_col]])
-    else
-        NA_character_,
+        ERA_score =
+            as.numeric(ERA_score),
 
-    IP = as.numeric(IP),
-    HR9 = as.numeric(HR9),
-    FIP = as.numeric(FIP),
-    W = as.numeric(W),
-    L = as.numeric(L),
-    GS = as.numeric(GS)
-  )
+        WHIP_score =
+            as.numeric(WHIP_score),
+
+        Kpct_score =
+            as.numeric(Kpct_score),
+
+        BBpct_score =
+            as.numeric(BBpct_score),
+
+        KBB_score =
+            as.numeric(KBB_score),
+
+        Overall =
+            as.numeric(OverallScore),
+
+        ExpectedOverall =
+            as.numeric(ExpectedOverall),
+
+        OverallDivergence =
+            as.numeric(OverallDivergence),
+
+        OverallDivergenceSD =
+            as.numeric(overall_divergence_sd),
+
+        Overall_pct =
+            as.numeric(Overall_pct),
+
+        XP =
+            as.numeric(XP),
+
+        Team =
+            if (!is.na(team_col))
+                as.character(
+                    .data[[team_col]]
+                )
+            else
+                NA_character_,
+
+        IP =
+            as.numeric(IP),
+
+        HR9 =
+            as.numeric(HR9),
+
+        FIP =
+            as.numeric(FIP),
+
+        W =
+            as.numeric(W),
+
+        L =
+            as.numeric(L),
+
+        GS =
+            as.numeric(GS)
+    )
+
+# ============================================================
+# JSON output
+# ============================================================
 
 cat(
     toJSON(
         result,
         pretty = TRUE,
-        auto_unbox = TRUE
+        auto_unbox = TRUE,
+        na = "null"
     )
 )
-```
