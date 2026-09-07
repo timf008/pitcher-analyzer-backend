@@ -264,106 +264,65 @@ profile_cols <- c(
     "KBB_score"
 )
 
-valid_profiles <- complete.cases(
-    df[, profile_cols]
-) & !is.na(df$OverallScore)
+valid_profiles <- complete.cases(df[, profile_cols]) &
+                  !is.na(df$OverallScore)
 
 profile_indices <- which(valid_profiles)
 
-# Standardize the current population once.
+# ============================================================
+# Standardize pitcher profiles
+# ============================================================
+
 profile_matrix <- scale(
-    df[valid_profiles, profile_cols]
+    as.matrix(df[valid_profiles, profile_cols])
 )
 
-# Store the scaling parameters so every pitcher is transformed
-# into the same standardized five-dimensional space.
-profile_centers <- attr(
-    profile_matrix,
-    "scaled:center"
-)
+# ============================================================
+# Calculate all pairwise distances ONCE
+# ============================================================
 
-profile_scales <- attr(
-    profile_matrix,
-    "scaled:scale"
-)
+distance_matrix <- as.matrix(dist(profile_matrix))
 
-calculate_expected_overall <- function(
-    player_index,
-    k = 10
-) {
+# Prevent each pitcher from selecting himself
+diag(distance_matrix) <- Inf
 
-    player_profile <- as.numeric(
-        df[player_index, profile_cols]
-    )
+# ============================================================
+# Expected Overall from 10 nearest neighbors
+# ============================================================
 
-    # Standardize this pitcher's five component scores
-    player_z <- (
-        player_profile - profile_centers
-    ) / profile_scales
+k <- 10
 
-    # Euclidean distance to every valid pitcher
-    distances <- rowSums(
-        (
-            sweep(
-                profile_matrix,
-                2,
-                player_z,
-                "-"
-            )
-        )^2
-    )^0.5
+expected_overall_valid <- apply(
+    distance_matrix,
+    1,
+    function(d) {
 
-    # Exclude the pitcher himself
-    self_position <- which(
-        profile_indices == player_index
-    )
+        finite <- which(is.finite(d))
 
-    if (length(self_position) > 0) {
-        distances[self_position] <- Inf
-    }
+        if (length(finite) == 0) {
+            return(NA_real_)
+        }
 
-    # Select nearest neighbors
-    finite_positions <- which(
-        is.finite(distances)
-    )
-
-    if (length(finite_positions) == 0) {
-        return(NA_real_)
-    }
-
-    neighbor_positions <- order(
-        distances[finite_positions]
-    )
-
-    neighbor_positions <- finite_positions[
-        neighbor_positions[
-            1:min(
-                k,
-                length(neighbor_positions)
-            )
+        neighbors <- finite[
+            order(d[finite])[
+                1:min(k, length(finite))
+            ]
         ]
-    ]
 
-    neighbor_indices <- profile_indices[
-        neighbor_positions
-    ]
+        neighbor_indices <- profile_indices[neighbors]
 
-    mean(
-        df$OverallScore[neighbor_indices],
-        na.rm = TRUE
-    )
-}
+        mean(
+            df$OverallScore[neighbor_indices],
+            na.rm = TRUE
+        )
+    }
+)
 
+# Store result back into full dataframe
 df$ExpectedOverall <- NA_real_
 
-for (i in profile_indices) {
-
-    df$ExpectedOverall[i] <-
-        calculate_expected_overall(
-            i,
-            k = 10
-        )
-}
+df$ExpectedOverall[profile_indices] <-
+    expected_overall_valid
 
 # ============================================================
 # Overall Divergence
