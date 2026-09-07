@@ -1,4 +1,3 @@
-```r
 #!/usr/bin/env Rscript
 
 library(readr)
