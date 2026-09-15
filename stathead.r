@@ -172,8 +172,15 @@ if ("SO_pitch" %in% names(df)) {
     }
 }
 
-bb_col <- get_col("^BB$")
+bb_col   <- get_col("^BB$")
 team_col <- get_col("^Team$")
+
+# Season Production columns
+h_col  <- get_col("^H$")
+r_col  <- get_col("^R$")
+er_col <- get_col("^ER$")
+hr_col <- get_col("^HR$")
+ip_col <- get_col("^IP$")
 
 if (is.na(so_col) || is.na(bb_col)) {
     cat(
@@ -673,11 +680,54 @@ result <- p %>%
             else
                 NA_character_,
 
-        IP =
-            as.numeric(IP),
+# ========================================================
+# Season Production
+# ========================================================
 
-        HR9 =
-            as.numeric(HR9),
+IP =
+    if (!is.na(ip_col))
+        as.numeric(.data[[ip_col]])
+    else
+        NA_real_,
+
+H =
+    if (!is.na(h_col))
+        as.numeric(.data[[h_col]])
+    else
+        NA_real_,
+
+R =
+    if (!is.na(r_col))
+        as.numeric(.data[[r_col]])
+    else
+        NA_real_,
+
+ER =
+    if (!is.na(er_col))
+        as.numeric(.data[[er_col]])
+    else
+        NA_real_,
+
+BB =
+    if (!is.na(bb_col))
+        as.numeric(.data[[bb_col]])
+    else
+        NA_real_,
+
+SO =
+    if (!is.na(so_col))
+        as.numeric(.data[[so_col]])
+    else
+        NA_real_,
+
+HR =
+    if (!is.na(hr_col))
+        as.numeric(.data[[hr_col]])
+    else
+        NA_real_,
+
+HR9 =
+    as.numeric(HR9),
 
         FIP =
             as.numeric(FIP),
