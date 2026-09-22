@@ -183,17 +183,21 @@ if (player_name == "__LIST__") {
 
     format_browser_name <- function(x) {
 
-        name <- str_to_title(x)
+    name <- str_to_title(x)
 
-        # Restore two-letter initials: JT, CJ, AJ, etc.
-        name <- str_replace_all(
-            name,
-            "\\b([A-Za-z])([A-Za-z])\\b",
-            function(m) toupper(m)
-        )
+    # Restore two-letter initials: JT, CJ, AJ, etc.
+    name <- str_replace_all(
+        name,
+        "\\b([A-Za-z])([A-Za-z])\\b",
+        function(m) toupper(m)
+    )
 
-        return(name)
-    }
+    # Restore name suffixes
+    name <- str_replace_all(name, "\\bJR\\b", "Jr")
+    name <- str_replace_all(name, "\\bSR\\b", "Sr")
+
+    return(name)
+}
 
     players <- df %>%
         transmute(
