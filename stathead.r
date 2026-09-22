@@ -175,6 +175,52 @@ if ("SO_pitch" %in% names(df)) {
 bb_col   <- get_col("^BB$")
 team_col <- get_col("^Team$")
 
+# ============================================================
+# Player Browser Mode
+# ============================================================
+
+if (player_name == "__LIST__") {
+
+    format_browser_name <- function(x) {
+
+        name <- str_to_title(x)
+
+        # Restore two-letter initials: JT, CJ, AJ, etc.
+        name <- str_replace_all(
+            name,
+            "\\b([A-Za-z])([A-Za-z])\\b",
+            function(m) toupper(m)
+        )
+
+        return(name)
+    }
+
+    players <- df %>%
+        transmute(
+            Player = sapply(
+                NameClean,
+                format_browser_name,
+                USE.NAMES = FALSE
+            ),
+            Team = if (!is.na(team_col))
+                as.character(.data[[team_col]])
+            else
+                NA_character_
+        ) %>%
+        filter(!is.na(Player), Player != "") %>%
+        arrange(Player)
+
+    cat(
+        toJSON(
+            players,
+            pretty = TRUE,
+            auto_unbox = TRUE
+        )
+    )
+
+    quit(status = 0)
+}
+
 # Season Production columns
 h_col  <- get_col("^H$")
 r_col  <- get_col("^R$")
