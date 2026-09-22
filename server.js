@@ -88,6 +88,38 @@ app.get("/api/pitchers", async (req, res) => {
 });
 
 // ---------------------------
+// API: Player Browser
+// ---------------------------
+app.get("/api/players", async (req, res) => {
+    const season = req.query.season;
+
+    if (!season) {
+        return res.status(400).json({ error: "Missing season" });
+    }
+
+    const cmd =
+        `cd "${__dirname}" && Rscript "stathead.r" "__LIST__" "${season}"`;
+
+    const output = await runR(cmd);
+
+    if (!output) {
+        return res.status(500).json({ error: "R timeout or crash" });
+    }
+
+    try {
+        const json = JSON.parse(output);
+        return res.json(json);
+    } catch (e) {
+        console.error("Player Browser JSON parse error:", e);
+        console.log("Raw R output:", output);
+
+        return res.status(500).json({
+            error: "Invalid JSON from R"
+        });
+    }
+});
+
+// ---------------------------
 // Rscript wrapper for leaders / compare / trend
 // ---------------------------
 const { spawn } = require("child_process");
