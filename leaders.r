@@ -116,16 +116,16 @@ XP = round(
       1000
     ),
 
-    # ============================================================
+# ============================================================
 # Fantasy Identity (Pitchers)
 # Mirrors JS xpTierPitcher + applyPitcherSkillModifier
 # ============================================================
 
 base_identity = case_when(
-  XP >= 1000 ~ "breakout",
-  XP >= 950  ~ "overperformer",
-  XP >= 900  ~ "sleeper",
-  XP >= 880  ~ "consistent",
+  XP >= 1060 ~ "breakout",
+  XP >= 1025 ~ "overperformer",
+  XP >= 1000 ~ "sleeper",
+  XP >= 975  ~ "consistent",
   TRUE       ~ "neutral"
 ),
 
