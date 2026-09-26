@@ -613,21 +613,18 @@ df$Overall_pct <- percentile(
 
 # ============================================================
 # Pitcher XP Score
+# Strikeout / Command Performance
 # ============================================================
 
 compute_pitcher_xp <- function(
     kpct,
     kbb,
-    era,
-    whip,
     bbpct
 ) {
 
     xp <-
-        (kpct * 2) +
-        (kbb * 10) -
-        (era * 15) -
-        (whip * 40) -
+        (kpct * 4) +
+        (kbb * 2) -
         (bbpct * 10)
 
     return(
@@ -638,8 +635,6 @@ compute_pitcher_xp <- function(
 df$XP <- compute_pitcher_xp(
     df$Kpct,
     df$SO_BB,
-    df$ERA,
-    df$WHIP,
     df$BBpct
 )
 
