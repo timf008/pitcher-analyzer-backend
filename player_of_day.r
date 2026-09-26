@@ -83,14 +83,12 @@ df <- df %>%
       1
     ),
 
-    XP = round(
-          (Kpct * 2) +
-          (KBB  * 10) -
-          (ERA  * 15) -
-          (WHIP * 40) -
-          (BBpct * 10) +
-          1000
-        )
+XP = round(
+      (Kpct * 4) +
+      (KBB  * 2) -
+      (BBpct * 10) +
+      1000
+    )
   ) %>%
   filter(GS > 5) %>%
   arrange(desc(overall))
