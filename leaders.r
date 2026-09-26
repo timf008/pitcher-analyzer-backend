@@ -108,15 +108,13 @@ df <- df %>%
       1
     ),
 
-    # XP (sabermetric production score)
-    XP = round(
-          (Kpct * 2) +
-          (KBB  * 10) -
-          (ERA  * 15) -
-          (WHIP * 40) -
-          (BBpct * 10) +
-          1000
-        ),
+# XP (strikeout / command performance score)
+XP = round(
+      (Kpct * 4) +
+      (KBB  * 2) -
+      (BBpct * 10) +
+      1000
+    ),
 
     # ============================================================
 # Fantasy Identity (Pitchers)
