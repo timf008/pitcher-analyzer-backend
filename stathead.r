@@ -684,6 +684,81 @@ if (nrow(p) == 0) {
 }
 
 # ============================================================
+# Find 3 Nearest Similar Profiles
+# ============================================================
+
+selected_df_index <- which(
+    df$NameClean == player_name_clean &
+    df$Season == as.numeric(season)
+)[1]
+
+selected_profile_position <- match(
+    selected_df_index,
+    profile_indices
+)
+
+similar_profiles <- list()
+
+if (!is.na(selected_profile_position)) {
+
+    distances <- similarity_distance_matrix[
+        selected_profile_position,
+    ]
+
+    finite <- which(
+        is.finite(distances)
+    )
+
+    if (length(finite) > 0) {
+
+        nearest_positions <- finite[
+            order(distances[finite])[
+                1:min(3, length(finite))
+            ]
+        ]
+
+        nearest_df_indices <-
+            profile_indices[nearest_positions]
+
+        similar_profiles <- lapply(
+            seq_along(nearest_df_indices),
+            function(i) {
+
+                idx <- nearest_df_indices[i]
+
+                list(
+                    Player = format_browser_name(
+                        df$NameClean[idx]
+                    ),
+
+                    Team = if (!is.na(team_col))
+                        as.character(df[[team_col]][idx])
+                    else
+                        NA_character_,
+
+                    Overall = as.numeric(
+                        df$OverallScore[idx]
+                    ),
+
+                    XP = as.numeric(
+                        df$XP[idx]
+                    ),
+
+                    BF = if ("BF" %in% names(df))
+                        as.numeric(df$BF[idx])
+                    else
+                        NA_real_,
+
+                    Distance = as.numeric(
+                        distances[nearest_positions[i]]
+                    )
+                )
+            }
+        )
+    }
+}
+
+# ============================================================
 # Build JSON output
 # ============================================================
 
