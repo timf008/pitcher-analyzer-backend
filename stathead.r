@@ -527,6 +527,27 @@ if (length(profile_indices) < 2) {
     # Prevent each pitcher from selecting himself
     diag(distance_matrix) <- Inf
 
+# ============================================================
+# Similar Profiles Distance Matrix
+#
+# Uses the raw 0-10 component scores rather than standardized
+# scores. This preserves the original five-metric profile
+# geometry for pitcher-to-pitcher similarity.
+# ============================================================
+
+similarity_matrix <- profile_data[
+    valid_profiles,
+    ,
+    drop = FALSE
+]
+
+similarity_distance_matrix <- as.matrix(
+    dist(similarity_matrix)
+)
+
+# Prevent each pitcher from matching himself
+diag(similarity_distance_matrix) <- Inf
+
     # ========================================================
     # Expected Overall from 10 nearest neighbors
     # ========================================================
