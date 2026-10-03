@@ -887,6 +887,10 @@ HR9 =
 # JSON output
 # ============================================================
 
+result$SimilarProfiles <- list(
+    similar_profiles
+)
+
 cat(
     toJSON(
         result,
