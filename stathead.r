@@ -727,8 +727,8 @@ if (!is.na(selected_profile_position)) {
                 idx <- nearest_df_indices[i]
 
                 list(
-                    Player = format_browser_name(
-                        df$NameClean[idx]
+                    Player = str_to_title(
+                             df$NameClean[idx]
                     ),
 
                     Team = if (!is.na(team_col))
