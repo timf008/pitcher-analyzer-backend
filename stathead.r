@@ -454,6 +454,228 @@ df$KBB_score <-
     score_kbb(df$SO_BB)
 
 # ============================================================
+# Pitcher Archetype
+#
+# Classifies profile SHAPE rather than overall quality.
+#
+# Each pitcher's five component scores are centered around
+# that pitcher's own mean score before measuring Euclidean
+# distance to the fixed archetype landmarks.
+# ============================================================
+
+pitcher_archetype_landmarks <- list(
+
+    "Strikeout / Variable" = c(
+        ERA  = -0.60,
+        WHIP = -0.87,
+        Kpct =  2.58,
+        BBpct = -1.17,
+        KBB  =  0.05
+    ),
+
+    "Run Prevention / Balanced" = c(
+        ERA  =  1.01,
+        WHIP =  0.43,
+        Kpct = -0.97,
+        BBpct =  0.00,
+        KBB  = -0.47
+    ),
+
+    "Power / Wildness" = c(
+        ERA  =  3.06,
+        WHIP =  0.43,
+        Kpct =  1.26,
+        BBpct = -3.16,
+        KBB  = -1.59
+    ),
+
+    "Command / Contact" = c(
+        ERA  = -1.57,
+        WHIP = -0.99,
+        Kpct = -0.74,
+        BBpct =  2.26,
+        KBB  =  1.04
+    )
+)
+
+
+classify_pitcher_archetype <- function(
+    era_score,
+    whip_score,
+    kpct_score,
+    bbpct_score,
+    kbb_score
+) {
+
+    scores <- c(
+        ERA  = era_score,
+        WHIP = whip_score,
+        Kpct = kpct_score,
+        BBpct = bbpct_score,
+        KBB  = kbb_score
+    )
+
+    # Archetype requires a complete finite profile
+    if (!all(is.finite(scores))) {
+
+        return(c(
+            Archetype = NA_character_,
+            ArchetypeMatch = NA_character_,
+            ArchetypeStrength = NA_character_
+        ))
+    }
+
+    # --------------------------------------------------------
+    # Remove overall level.
+    #
+    # This preserves profile SHAPE while preventing archetype
+    # from becoming another measure of pitcher quality.
+    # --------------------------------------------------------
+
+    centered_scores <-
+        scores - mean(scores)
+
+
+    # --------------------------------------------------------
+    # Euclidean distance from centered profile to each
+    # fixed pitcher archetype landmark.
+    # --------------------------------------------------------
+
+    distances <- sapply(
+        pitcher_archetype_landmarks,
+        function(landmark) {
+
+            sqrt(
+                sum(
+                    (centered_scores - landmark)^2
+                )
+            )
+        }
+    )
+
+
+    ranked <- sort(distances)
+
+    nearest_distance <-
+        unname(ranked[1])
+
+    second_distance <-
+        unname(ranked[2])
+
+    archetype <-
+        names(ranked)[1]
+
+
+    # --------------------------------------------------------
+    # Match Strength
+    #
+    # 0 = essentially on a boundary between landmarks
+    # Higher values = clearer separation from second choice
+    # --------------------------------------------------------
+
+    if (
+        !is.finite(nearest_distance) ||
+        !is.finite(second_distance) ||
+        second_distance <= 0
+    ) {
+
+        match_strength <- NA_real_
+
+    } else {
+
+        match_strength <-
+            1 -
+            (
+                nearest_distance /
+                second_distance
+            )
+    }
+
+
+    # --------------------------------------------------------
+    # Match classification
+    # --------------------------------------------------------
+
+    if (is.na(match_strength)) {
+
+        match_label <- NA_character_
+
+    } else if (match_strength >= 0.50) {
+
+        match_label <- "Strong Match"
+
+    } else if (match_strength >= 0.30) {
+
+        match_label <- "Moderate Match"
+
+    } else {
+
+        match_label <- "Weak Match"
+    }
+
+
+    return(
+        c(
+            Archetype =
+                unname(archetype),
+
+            ArchetypeMatch =
+                unname(match_label),
+
+            ArchetypeStrength =
+                ifelse(
+                    is.na(match_strength),
+                    NA_character_,
+                    sprintf(
+                        "%.3f",
+                        unname(match_strength)
+                    )
+                )
+        )
+    )
+}
+
+
+# ============================================================
+# Classify all pitchers
+# ============================================================
+
+pitcher_archetype_results <- lapply(
+    seq_len(nrow(df)),
+    function(i) {
+
+        classify_pitcher_archetype(
+            df$ERA_score[i],
+            df$WHIP_score[i],
+            df$Kpct_score[i],
+            df$BBpct_score[i],
+            df$KBB_score[i]
+        )
+    }
+)
+
+
+df$Archetype <- vapply(
+    pitcher_archetype_results,
+    function(x) x[["Archetype"]],
+    character(1)
+)
+
+df$ArchetypeMatch <- vapply(
+    pitcher_archetype_results,
+    function(x) x[["ArchetypeMatch"]],
+    character(1)
+)
+
+df$ArchetypeStrength <- as.numeric(
+    vapply(
+        pitcher_archetype_results,
+        function(x) x[["ArchetypeStrength"]],
+        character(1)
+    )
+)
+
+# ============================================================
 # Cross-Sectional Expected Overall
 #
 # Uses the current season population.
@@ -794,6 +1016,15 @@ result <- p %>%
 
         KBB_score =
             as.numeric(KBB_score),
+
+Archetype =
+    as.character(Archetype),
+
+ArchetypeMatch =
+    as.character(ArchetypeMatch),
+
+ArchetypeStrength =
+    as.numeric(ArchetypeStrength),
 
         Overall =
             as.numeric(OverallScore),
