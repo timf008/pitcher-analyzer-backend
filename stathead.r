@@ -155,6 +155,64 @@ if (file.exists(mlbid_file) &&
 
 
 # ============================================================
+# MLB ID DIAGNOSTICS
+# ============================================================
+
+cat("\n===== MLB ID DIAGNOSTICS =====\n", file = stderr())
+
+cat(
+    "Mapping file exists:",
+    file.exists(mlbid_file),
+    "\n",
+    file = stderr()
+)
+
+cat(
+    "Player-additional exists:",
+    "Player-additional" %in% names(df),
+    "\n",
+    file = stderr()
+)
+
+cat(
+    "Total pitchers:",
+    nrow(df),
+    "\n",
+    file = stderr()
+)
+
+cat(
+    "Matched MLB IDs:",
+    sum(!is.na(df$mlbId)),
+    "\n",
+    file = stderr()
+)
+
+if ("Player-additional" %in% names(df)) {
+    cat(
+        "Sample Stathead IDs:",
+        paste(head(df[["Player-additional"]], 5),
+              collapse = ", "),
+        "\n",
+        file = stderr()
+    )
+}
+
+if (file.exists(mlbid_file)) {
+    cat(
+        "Mapping CSV columns:",
+        paste(names(read_csv(mlbid_file, show_col_types = FALSE)),
+              collapse = ", "),
+        "\n",
+        file = stderr()
+    )
+}
+
+cat("==============================\n", file = stderr())
+
+
+
+# ============================================================
 # Normalize column names
 # ============================================================
 names(df) <- names(df) |>
