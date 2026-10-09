@@ -70,6 +70,90 @@ df <- read_csv(
     show_col_types = FALSE
 )
 
+
+# ============================================================
+# MLBAM player IDs for headshots (optional enrichment)
+# Match using Stathead's Baseball-Reference identifier rather
+# than names, which can be duplicated or formatted differently.
+# ============================================================
+
+mlbid_file <- file.path(
+    getwd(),
+    "stathead_mlbid_reconciled_updated.csv"
+)
+
+df$mlbId <- NA_integer_
+
+if (file.exists(mlbid_file) &&
+    "Player-additional" %in% names(df)) {
+
+    mlbid_map <- read_csv(
+        mlbid_file,
+        show_col_types = FALSE
+    )
+
+    if (all(c("BBRefID", "MLBAMID") %in% names(mlbid_map))) {
+
+        bbref_key <- tolower(
+            trimws(as.character(mlbid_map$BBRefID))
+        )
+
+        mlbam_values <- suppressWarnings(
+            as.integer(mlbid_map$MLBAMID)
+        )
+
+        # Never guess if a BBRef identifier maps
+        # to conflicting MLB IDs.
+        valid <- !is.na(bbref_key) &
+                 nzchar(bbref_key) &
+                 !is.na(mlbam_values)
+
+        lookup <- split(
+            mlbam_values[valid],
+            bbref_key[valid]
+        )
+
+        safe_lookup <- vapply(
+            lookup,
+            function(ids) {
+                ids <- unique(ids)
+
+                if (length(ids) == 1) {
+                    ids[[1]]
+                } else {
+                    NA_integer_
+                }
+            },
+            integer(1)
+        )
+
+        stathead_key <- tolower(
+            trimws(as.character(df[["Player-additional"]]))
+        )
+
+        df$mlbId <- unname(
+            safe_lookup[
+                match(stathead_key, names(safe_lookup))
+            ]
+        )
+
+    } else {
+
+        cat(
+            "MLBID WARNING: mapping file lacks BBRefID or MLBAMID\n",
+            file = stderr()
+        )
+    }
+
+} else {
+
+    cat(
+        "MLBID WARNING: mapping file or Player-additional column unavailable\n",
+        file = stderr()
+    )
+}
+
+
 # ============================================================
 # Normalize column names
 # ============================================================
@@ -231,6 +315,7 @@ r_col  <- get_col("^R$")
 er_col <- get_col("^ER$")
 hr_col <- get_col("^HR$")
 ip_col <- get_col("^IP$")
+fip_col <- get_col("^FIP$")
 
 if (is.na(so_col) || is.na(bb_col)) {
     cat(
@@ -986,6 +1071,8 @@ if (!is.na(selected_profile_position)) {
 
 result <- p %>%
     transmute(
+
+         mlbId = as.integer(mlbId),
 
         ERA =
             as.numeric(ERA),
