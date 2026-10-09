@@ -259,17 +259,17 @@ if ("SO_pitch" %in% names(df)) {
 bb_col   <- get_col("^BB$")
 team_col <- get_col("^Team$")
 
+
 # ============================================================
-# Player Browser Mode
+# Player Name Formatting
+# Shared by Player Browser and Similar Profiles
 # ============================================================
 
-if (player_name == "__LIST__") {
-
-    format_browser_name <- function(x) {
+format_browser_name <- function(x) {
 
     name <- str_to_title(x)
 
-    # Restore two-letter initials: JT, CJ, AJ, etc.
+    # Restore two-letter initials
     name <- str_replace_all(
         name,
         "\\b([A-Za-z])([A-Za-z])\\b",
@@ -282,6 +282,12 @@ if (player_name == "__LIST__") {
 
     return(name)
 }
+
+# ============================================================
+# Player Browser Mode
+# ============================================================
+
+if (player_name == "__LIST__") {
 
     players <- df %>%
         transmute(
@@ -308,6 +314,7 @@ if (player_name == "__LIST__") {
 
     quit(status = 0)
 }
+
 
 # Season Production columns
 h_col  <- get_col("^H$")
