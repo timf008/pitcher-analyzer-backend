@@ -990,6 +990,7 @@ if (nrow(p) == 0) {
     quit(status = 1)
 }
 
+
 # ============================================================
 # Find 3 Nearest Similar Profiles
 # ============================================================
@@ -999,6 +1000,7 @@ selected_df_index <- which(
     df$Season == as.numeric(season)
 )[1]
 
+# Find selected player's position inside the valid-profile matrix
 selected_profile_position <- match(
     selected_df_index,
     profile_indices
@@ -1012,9 +1014,7 @@ if (!is.na(selected_profile_position)) {
         selected_profile_position,
     ]
 
-    finite <- which(
-        is.finite(distances)
-    )
+    finite <- which(is.finite(distances))
 
     if (length(finite) > 0) {
 
@@ -1034,8 +1034,12 @@ if (!is.na(selected_profile_position)) {
                 idx <- nearest_df_indices[i]
 
                 list(
-                    Player = str_to_title(
-                             df$NameClean[idx]
+                    Player = format_browser_name(
+                        df$NameClean[idx]
+                    ),
+
+                    mlbId = as.integer(
+                        df$mlbId[idx]
                     ),
 
                     Team = if (!is.na(team_col))
@@ -1064,6 +1068,7 @@ if (!is.na(selected_profile_position)) {
         )
     }
 }
+
 
 # ============================================================
 # Build JSON output
