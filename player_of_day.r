@@ -17,26 +17,16 @@ df <- read.csv(file_path, stringsAsFactors = FALSE, encoding = "UTF-8")
 # ============================================================
 clean_player_name <- function(x) {
 
-  x <- stri_unescape_unicode(x)
-
-  # Convert literal R-style Unicode markers
-  x <- str_replace_all(
-    x,
-    fixed("<U+00E1>"),
-    "á"
-  )
+  # Convert literal Unicode markers
+  x <- gsub("<U+00E1>", intToUtf8(225), x, fixed = TRUE)
 
   # Remove HTML nonbreaking spaces
-  x <- str_replace_all(
-    x,
-    fixed("&#xA0;"),
-    " "
-  )
+  x <- gsub("&#xA0;", " ", x, fixed = TRUE)
 
-  # Normalize Unicode characters
+  # Normalize Unicode
   x <- stri_trans_nfc(x)
 
-  # Remove leading/trailing whitespace
+  # Clean whitespace
   x <- str_squish(x)
 
   return(x)
