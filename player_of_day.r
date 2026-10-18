@@ -12,27 +12,10 @@ file_path <- file.path(getwd(), sprintf("stathead_pitching_%s.csv", season))
 
 df <- read.csv(file_path, stringsAsFactors = FALSE, encoding = "UTF-8")
 
-# ============================================================
-# Normalize player names
-# ============================================================
-clean_player_name <- function(x) {
-
-  # Convert literal Unicode markers
-  x <- gsub("<U+00E1>", intToUtf8(225), x, fixed = TRUE)
-
-  # Remove HTML nonbreaking spaces
-  x <- gsub("&#xA0;", " ", x, fixed = TRUE)
-
-  # Normalize Unicode
-  x <- stri_trans_nfc(x)
-
-  # Clean whitespace
-  x <- str_squish(x)
-
-  return(x)
-}
-
-df$Player <- clean_player_name(df$Player)
+# -------------------------------
+# Normalize player names for ticker
+# -------------------------------
+df$Player <- stri_trans_general(df$Player, "Latin-ASCII")
 
 
 # ============================================================
